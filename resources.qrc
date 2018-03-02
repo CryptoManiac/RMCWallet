@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/">
+        <file>RMC_Logo_all1.png</file>
+        <file>RMC.crt</file>
+        <file>RMC.icns</file>
+        <file>RMC.ico</file>
+    </qresource>
+</RCC>

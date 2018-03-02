@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>WalletMain</class>
+ <widget class="QMainWindow" name="WalletMain">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>809</width>
+    <height>358</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>RPC Wallet</string>
+  </property>
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QTabWidget" name="tabWidget">
+      <property name="currentIndex">
+       <number>1</number>
+      </property>
+      <widget class="QWidget" name="historyTab">
+       <property name="toolTip">
+        <string>Transaction history</string>
+       </property>
+       <property name="whatsThis">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Transaction history tab&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <attribute name="title">
+        <string>History</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout">
+        <item row="0" column="0">
+         <widget class="TxTable" name="txView">
+          <property name="maximumSize">
+           <size>
+            <width>1000000</width>
+            <height>1000000</height>
+           </size>
+          </property>
+          <property name="editTriggers">
+           <set>QAbstractItemView::NoEditTriggers</set>
+          </property>
+          <property name="showGrid">
+           <bool>false</bool>
+          </property>
+          <column>
+           <property name="text">
+            <string comment="Transaction timestamp">Date</string>
+           </property>
+           <property name="toolTip">
+            <string>Transaction timestamp</string>
+           </property>
+           <property name="whatsThis">
+            <string>Transaction timestamp</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Type</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Transaction ID</string>
+           </property>
+           <property name="toolTip">
+            <string>Transaction hash</string>
+           </property>
+           <property name="whatsThis">
+            <string>Transaction hash</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Amount</string>
+           </property>
+           <property name="toolTip">
+            <string>Amount of RMC transaction</string>
+           </property>
+           <property name="whatsThis">
+            <string>Amount of RMC transaction</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Tx JSON</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="sendTab">
+       <property name="toolTip">
+        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;New transaction form&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+       </property>
+       <attribute name="title">
+        <string>Send</string>
+       </attribute>
+       <widget class="QPushButton" name="sendButton">
+        <property name="geometry">
+         <rect>
+          <x>390</x>
+          <y>120</y>
+          <width>100</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>100</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Send</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="receiverLabel">
+        <property name="geometry">
+         <rect>
+          <x>16</x>
+          <y>1</y>
+          <width>109</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Receiver address:</string>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="receiverAddressEdit">
+        <property name="geometry">
+         <rect>
+          <x>139</x>
+          <y>1</y>
+          <width>471</width>
+          <height>21</height>
+         </rect>
+        </property>
+       </widget>
+       <widget class="QLabel" name="amountLabel">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>90</y>
+          <width>101</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Amount to send:</string>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="amountToSend">
+        <property name="geometry">
+         <rect>
+          <x>140</x>
+          <y>90</y>
+          <width>121</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>160</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="placeholderText">
+         <string>0</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="rmcLabel">
+        <property name="geometry">
+         <rect>
+          <x>280</x>
+          <y>90</y>
+          <width>29</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>RMC</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="clearButton">
+        <property name="geometry">
+         <rect>
+          <x>170</x>
+          <y>120</y>
+          <width>100</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>100</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Clear</string>
+        </property>
+       </widget>
+       <widget class="QPushButton" name="previewButton">
+        <property name="geometry">
+         <rect>
+          <x>280</x>
+          <y>120</y>
+          <width>100</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>100</width>
+          <height>16777215</height>
+         </size>
+        </property>
+        <property name="text">
+         <string>Preview</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="destinationTagLabel">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>30</y>
+          <width>111</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Destination tag:</string>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="destinationTag">
+        <property name="geometry">
+         <rect>
+          <x>140</x>
+          <y>30</y>
+          <width>171</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="placeholderText">
+         <string>0</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="sendTransactionFeeLabel">
+        <property name="geometry">
+         <rect>
+          <x>20</x>
+          <y>60</y>
+          <width>111</width>
+          <height>16</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>Transaction fee:</string>
+        </property>
+       </widget>
+       <widget class="QLineEdit" name="sendTransactionFeeValue">
+        <property name="geometry">
+         <rect>
+          <x>140</x>
+          <y>60</y>
+          <width>121</width>
+          <height>21</height>
+         </rect>
+        </property>
+        <property name="placeholderText">
+         <string>0,00001</string>
+        </property>
+       </widget>
+       <widget class="QLabel" name="rmcLabel_2">
+        <property name="geometry">
+         <rect>
+          <x>280</x>
+          <y>60</y>
+          <width>29</width>
+          <height>20</height>
+         </rect>
+        </property>
+        <property name="text">
+         <string>RMC</string>
+        </property>
+       </widget>
+      </widget>
+      <widget class="QWidget" name="ledgerInfoTab">
+       <attribute name="title">
+        <string>Ledger info</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_2">
+        <item row="6" column="0">
+         <widget class="QLabel" name="baseReserveLabel">
+          <property name="text">
+           <string>Base reserve:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="6" column="1">
+         <widget class="QLabel" name="baseReserveValue">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="baseFeeLabel">
+          <property name="text">
+           <string>Base fee:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLabel" name="transactionsCount">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="0">
+         <widget class="QLabel" name="transactionCountLabel">
+          <property name="text">
+           <string>Transactions:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="closeTimelabel">
+          <property name="text">
+           <string>Close time:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="1">
+         <widget class="QLabel" name="baseFeeValue">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLabel" name="latestLedgerHash">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLabel" name="closeTime">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLabel" name="latestLedgerNum">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="lastLedgerHashLabel">
+          <property name="text">
+           <string>Hash:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="0">
+         <widget class="QLabel" name="lastLedgerLabel">
+          <property name="text">
+           <string>Latest ledger:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QLabel" name="feeReflabel">
+          <property name="text">
+           <string>Current fee:</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QLabel" name="feeRefValue">
+          <property name="text">
+           <string>-</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QToolBar" name="mainToolBar">
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>809</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>Actions</string>
+    </property>
+    <widget class="QMenu" name="menuKey_management">
+     <property name="title">
+      <string>Key management</string>
+     </property>
+     <addaction name="actionExport_key"/>
+     <addaction name="actionImport_key"/>
+     <addaction name="actionReinitializeWallet"/>
+     <addaction name="actionEncrypt_wallet"/>
+    </widget>
+    <addaction name="menuKey_management"/>
+    <addaction name="actionCopy_account_address"/>
+    <addaction name="separator"/>
+    <addaction name="actionReconnect"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout"/>
+   </widget>
+   <addaction name="menuFile"/>
+   <addaction name="menuHelp"/>
+  </widget>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionImport_key">
+   <property name="text">
+    <string>Replace account</string>
+   </property>
+  </action>
+  <action name="actionReinitializeWallet">
+   <property name="text">
+    <string>Reinitialize wallet</string>
+   </property>
+  </action>
+  <action name="actionExport_key">
+   <property name="text">
+    <string>Export</string>
+   </property>
+  </action>
+  <action name="actionEncrypt_wallet">
+   <property name="text">
+    <string>Encrypt wallet</string>
+   </property>
+  </action>
+  <action name="actionCopy_account_address">
+   <property name="text">
+    <string>Copy account address</string>
+   </property>
+  </action>
+  <action name="actionReconnect">
+   <property name="text">
+    <string>Reconnect</string>
+   </property>
+  </action>
+  <action name="actionAbout">
+   <property name="text">
+    <string>About</string>
+   </property>
+  </action>
+ </widget>
+ <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>TxTable</class>
+   <extends>QTableWidget</extends>
+   <header>txtable.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

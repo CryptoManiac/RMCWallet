@@ -1,0 +1,11 @@
+#ifndef MSGKIND_H
+#define MSGKIND_H
+
+enum MessageType {
+    MSG_ACCOUNT_INFO,
+    MSG_ACCOUNT_TX,
+    MSG_SUBMIT_TX,
+    MSG_SUBSCRIBE_LEDGER_AND_ACCOUNT
+};
+
+#endif // MSGKIND_H
