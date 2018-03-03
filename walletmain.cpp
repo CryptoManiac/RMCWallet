@@ -33,6 +33,7 @@
 
 #include <algorithm>
 #include <random>
+#include <tuple>
 
 static void showMessage(const QString& strCaption, const QString& strMessage, int nType)
 {
@@ -164,7 +165,8 @@ bool WalletMain::loadWallet(QString& errorMsg)
 
                 auto cryptedKey = *decodeResult2;
                 auto salt = *decodeResult3;
-                std::vector<unsigned char> privateKey;
+                auto nDeriveIterations = keyObj["iterations"].toInt();
+                if (nDeriveIterations == 0) nDeriveIterations = 500000;
 
                 while (true)
                 {
@@ -172,10 +174,9 @@ bool WalletMain::loadWallet(QString& errorMsg)
                     if (pwDialog.exec() == QDialog::Accepted) {
 
                         bool fOk = true;
-                        if (fOk) fOk = decryptKey(cryptedKey, pwDialog.getPassword().toStdString(), salt, privateKey);
+                        if (fOk) fOk = decryptKey(cryptedKey, pwDialog.getPassword().toStdString(), salt, nDeriveIterations, sk1);
                         if (fOk)
                         {
-                            sk1 = SecretKey(Slice(&privateKey[0], privateKey.size()));
                             pk1 = derivePublicKey(KeyType::secp256k1, sk1);
                             fOk = (id == calcAccountID(pk1));
                         }
@@ -229,9 +230,7 @@ void WalletMain::saveKeys()
 void WalletMain::newKey()
 {
     using namespace ripple;
-    Seed seed = randomSeed();
-    accountKey = generateSecretKey(KeyType::secp256k1, seed);
-    publicKey = derivePublicKey(KeyType::secp256k1, accountKey);
+    std::tie(publicKey, accountKey) = randomKeyPair(KeyType::secp256k1);
     strAccountID = toBase58(calcAccountID(publicKey)).c_str();
     saveKeys();
 }
@@ -882,10 +881,9 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 
     if (pwDialog.exec() == QDialog::Accepted)
     {
-        std::vector<unsigned char> salt, cryptedKey, plainKey;
-        plainKey.assign(accountKey.data(), accountKey.data() + accountKey.size());
-
-        if (! encryptKey(plainKey, pwDialog.getPassword().toStdString(), salt, cryptedKey))
+        std::vector<unsigned char> salt, cryptedKey;
+        int nDeriveIterations;
+        if (! encryptKey(accountKey, pwDialog.getPassword().toStdString(), salt, nDeriveIterations, cryptedKey))
         {
             showMessage("Error", "Error while encrypting your wallet", 2);
             return;
@@ -895,6 +893,7 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
         {
             { "encrypted_private_key", strHex(cryptedKey.begin(), cryptedKey.size()).c_str() },
             { "salt", strHex(salt.begin(), salt.size()).c_str() },
+            { "iterations", nDeriveIterations },
             { "account_id", strAccountID },
         }).toJson();
 
