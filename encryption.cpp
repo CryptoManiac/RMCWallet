@@ -16,7 +16,7 @@ bool encryptKey(const secure::secret& keyData, const secure::string& strPassword
 
     std::random_device rd;
     std::mt19937 rng(rd());
-    std::uniform_int_distribution<int> uni(500000, 10000000);
+    std::uniform_int_distribution<int> uni(700000, 2000000);
 
     nDeriveIterations = uni(rng);
 
