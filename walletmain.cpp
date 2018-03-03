@@ -130,6 +130,8 @@ bool WalletMain::loadWallet(QString& errorMsg)
             else newKey(); // User refused, generating new private key
             break;
         }
+
+        return true;
     }
     else
     {
@@ -187,9 +189,11 @@ bool WalletMain::loadWallet(QString& errorMsg)
                 if (pwDialog.exec() == QDialog::Accepted) {
 
                     bool fOk = true;
-                    if (fOk) fOk = decryptKey(keyData.encryptedKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.secretKey);
+                    secure::secret secretData;
+                    if (fOk) fOk = decryptKey(keyData.encryptedKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, secretData);
                     if (fOk)
                     {
+                        keyData.secretKey = SecretKey(Slice(&secretData[0], secretData.size()));
                         keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
                         fOk = (keyData.accountID == calcAccountID(keyData.publicKey));
                     }
@@ -279,9 +283,11 @@ bool WalletMain::askPassword(QString& errorMsg)
             if (pwDialog.exec() == QDialog::Accepted) {
 
                 bool fOk = true;
-                if (fOk) fOk = decryptKey(keyData.encryptedKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.secretKey);
+                secure::secret secretData;
+                if (fOk) fOk = decryptKey(keyData.encryptedKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, secretData);
                 if (fOk)
                 {
+                    keyData.secretKey = SecretKey(Slice(&secretData[0], secretData.size()));
                     keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
                     fOk = (keyData.accountID == calcAccountID(keyData.publicKey));
                 }
@@ -947,7 +953,9 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 
     if (pwDialog.exec() == QDialog::Accepted)
     {
-        if (! encryptKey(keyData.secretKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.encryptedKey))
+        secure::secret secretData;
+        secretData.assign(keyData.secretKey.data(), keyData.secretKey.data() + keyData.secretKey.size());
+        if (! encryptKey(secretData, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.encryptedKey))
         {
             showMessage("Error", "Error while encrypting your wallet", 2);
             return;

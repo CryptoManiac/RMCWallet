@@ -5,8 +5,6 @@
 #include <string>
 #include <openssl/crypto.h>
 
-#include <ripple/protocol/SecretKey.h>
-
 namespace secure
 {
     // from bitcoin's allocator.h
@@ -40,10 +38,11 @@ namespace secure
     };
 
     typedef std::basic_string<char, std::char_traits<char>, zero_after_free_allocator<char> > string;
+    typedef std::vector<unsigned char, zero_after_free_allocator<unsigned char> > secret;
 }
 
-bool encryptKey(const ripple::SecretKey& keyData, const secure::string& strPassword, std::vector<unsigned char>& salt, int& nDeriveIterations, std::vector<unsigned char>& cryptedKey);
-bool decryptKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, ripple::SecretKey& decryptedKey);
+bool encryptKey(const secure::secret& keyData, const secure::string& strPassword, std::vector<unsigned char>& salt, int& nDeriveIterations, std::vector<unsigned char>& cryptedKey);
+bool decryptKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, secure::secret& decryptedKey);
 
 
 #endif // ENCRYPTION_H
