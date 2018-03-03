@@ -58,15 +58,21 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
         errorMsg = "Invalid receiver address";
         return false;
     }
+
+    if (nAmount <= 0) {
+        errorMsg = "You can send only positive amounts.";
+        return false;
+    }
+
     STTx noopTx(ttPAYMENT,
                 [&](auto& obj)
     {
         // General transaction fields
-        obj[sfAccount] = calcAccountID(publicKey);
+        obj[sfAccount] = keyData.accountID;
         obj[sfFee] = STAmount{ static_cast<uint64_t>(nTransactionFee) };
         obj[sfFlags] = tfFullyCanonicalSig;
         obj[sfSequence] = nSequence;
-        obj[sfSigningPubKey] = publicKey.slice();
+        obj[sfSigningPubKey] = keyData.publicKey.slice();
         // Payment-specific fields
         obj[sfAmount] = STAmount { static_cast<uint64_t>(nAmount) };
         obj[sfDestination] = *destination;
@@ -77,7 +83,18 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
 
     try
     {
-        noopTx.sign(publicKey, accountKey);
+        QString errorStr;
+        if (! askPassword(errorStr)) {
+            if (errorStr == "Password")
+                errorMsg = "Password";
+            else
+                errorMsg = QString("Error while decrypting your key: ") + errorStr;
+            return false;
+        }
+
+        noopTx.sign(keyData.publicKey, keyData.secretKey);
+        if (keyData.nDeriveIterations != 0)
+            keyData.secretKey.~SecretKey();
         dataJson = noopTx.getJson(0).toStyledString().c_str();
         dataHex = strHex(noopTx.getSerializer().peekData()).c_str();
     }
@@ -93,171 +110,201 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
 bool WalletMain::loadWallet(QString& errorMsg)
 {
     using namespace ripple;
-    encrypted = false;
 
-    try
+    QFile keyFile;
+    keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
+    bool fOpened = keyFile.open(QIODevice::ReadOnly | QIODevice::Text);
+
+    if (!fOpened)
     {
-        QFile keyFile;
-        keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
-        bool fOpened = keyFile.open(QIODevice::ReadOnly | QIODevice::Text);
-
-        if (!fOpened)
+        // Brand new wallet
+        ImportDialog importReq;
+        while (true)
         {
-            // Brand new wallet
-            ImportDialog importReq;
-            while (true)
+            // Ask user to import his WIF formatted key
+            if (importReq.exec() == QDialog::Accepted)
             {
-                // Ask user to import his WIF formatted key
-                if (importReq.exec() == QDialog::Accepted)
-                {
-                    if(!importKey(importReq.getKeyData()))
-                        continue; // Incorrect WIF string entered, ask user again
-                }
-                else newKey(); // User refused, generating new private key
-                break;
+                if(!importKey(importReq.getKeyData()))
+                    continue; // Incorrect WIF string entered, ask user again
             }
+            else newKey(); // User refused, generating new private key
+            break;
         }
-        else
-        {
-            QJsonObject keyObj = QJsonDocument::fromJson(keyFile.readAll()).object();
-            keyFile.close();
+    }
+    else
+    {
+        QJsonObject keyObj = QJsonDocument::fromJson(keyFile.readAll()).object();
+        keyFile.close();
 
-            auto decodeResult1 = parseBase58<AccountID>(keyObj["account_id"].toString().toStdString());
-            if (! decodeResult1)
+        auto decodeResult1 = parseBase58<AccountID>(keyObj["account_id"].toString().toStdString());
+        if (! decodeResult1)
+        {
+            errorMsg = "Unable to load your account ID, it looks like your wallet data was corrupted.";
+            return false;
+        }
+
+        keyData.accountID = *decodeResult1;
+
+        if ( !keyObj["private_key"].isUndefined() && !keyObj["private_key"].isNull())
+        {
+            // Plain wallet
+            auto decodeResult = parseHex<SecretKey>(keyObj["private_key"].toString().toStdString());
+            if (! decodeResult)
             {
-                errorMsg = "Unable to load your account ID, it looks like your wallet data was corrupted.";
+                errorMsg = "Unable to read private key, it looks like your wallet data was corrupted";
+                return false;
+            }
+            keyData.secretKey = *decodeResult;
+            keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+            if (keyData.accountID != calcAccountID(keyData.publicKey))
+            {
+                errorMsg = "Private key doesn't match your account ID, it looks like your wallet data was corrupted";
                 return false;
             }
 
-            AccountID id = *decodeResult1;
-            PublicKey pk1;
-            SecretKey sk1;
+            return true;
+        }
+        else
+        {
+            // Encrypted wallet
+            auto decodeResult2 = parseHex<std::vector<unsigned char> >(keyObj["encrypted_private_key"].toString().toStdString());
+            auto decodeResult3 = parseHex<std::vector<unsigned char> >(keyObj["salt"].toString().toStdString());
 
-            if ( !keyObj["private_key"].isUndefined() && !keyObj["private_key"].isNull())
+            if (! decodeResult2 || ! decodeResult3)
             {
-                // Plain wallet
-                auto decodeResult = parseHex<SecretKey>(keyObj["private_key"].toString().toStdString());
-                if (! decodeResult)
-                {
-                    errorMsg = "Unable to read private key, it looks like your wallet data was corrupted";
-                    return false;
-                }
-                sk1 = *decodeResult;
-                pk1 = derivePublicKey(KeyType::secp256k1, sk1);
-                if (id != calcAccountID(pk1))
-                {
-                    errorMsg = "Private key doesn't match your account ID, it looks like your wallet data was corrupted";
-                    return false;
-                }
+                errorMsg = "Unable to decode encrypted keys, it looks like your wallet data was corrupted.";
+                return false;
             }
-            else
+
+            keyData.encryptedKey = *decodeResult2;
+            keyData.salt = *decodeResult3;
+            keyData.nDeriveIterations = keyObj["iterations"].toInt();
+            if (keyData.nDeriveIterations == 0) keyData.nDeriveIterations = 500000;
+
+            while (true)
             {
-                // Encrypted wallet
-                encrypted = true;
-                auto decodeResult2 = parseHex<std::vector<unsigned char> >(keyObj["encrypted_private_key"].toString().toStdString());
-                auto decodeResult3 = parseHex<std::vector<unsigned char> >(keyObj["salt"].toString().toStdString());
+                EnterPassword pwDialog;
+                if (pwDialog.exec() == QDialog::Accepted) {
 
-                if (! decodeResult2 || ! decodeResult3)
-                {
-                    errorMsg = "Unable to decode encrypted keys, it looks like your wallet data was corrupted.";
-                    return false;
-                }
-
-                auto cryptedKey = *decodeResult2;
-                auto salt = *decodeResult3;
-                auto nDeriveIterations = keyObj["iterations"].toInt();
-                if (nDeriveIterations == 0) nDeriveIterations = 500000;
-
-                while (true)
-                {
-                    EnterPassword pwDialog;
-                    if (pwDialog.exec() == QDialog::Accepted) {
-
-                        bool fOk = true;
-                        if (fOk) fOk = decryptKey(cryptedKey, pwDialog.getPassword().toStdString(), salt, nDeriveIterations, sk1);
-                        if (fOk)
-                        {
-                            pk1 = derivePublicKey(KeyType::secp256k1, sk1);
-                            fOk = (id == calcAccountID(pk1));
-                        }
-
-                        if (fOk) break;
-
-                        // Wrong password, try again
-                        continue;
-                    }
-                    else
+                    bool fOk = true;
+                    if (fOk) fOk = decryptKey(keyData.encryptedKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.secretKey);
+                    if (fOk)
                     {
-                        // User refused to enter the password
-                        errorMsg = "Password";
-                        return false;
+                        keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+                        fOk = (keyData.accountID == calcAccountID(keyData.publicKey));
                     }
+
+                    if (fOk) break;
+
+                    // Wrong password, try again
+                    continue;
+                }
+                else
+                {
+                    // User refused to enter the password
+                    errorMsg = "Password";
+                    return false;
                 }
             }
 
-            // Set decoding results
-            accountKey = sk1;
-            publicKey = pk1;
-            strAccountID = toBase58(id).c_str();
+            // Destroy key object and return
+            keyData.secretKey.~SecretKey();
+            return true;
         }
     }
-    catch(std::exception e)
-    {
-        errorMsg = e.what();
-        return false;
-    }
 
-    return true;
+    errorMsg = "Shouldn't happen in real life";
+    return false;
 }
 
 void WalletMain::saveKeys()
 {
     using namespace ripple;
 
-    auto keyData = QJsonDocument (QJsonObject
+    auto keyJSONData = QJsonDocument (QJsonObject
     {
-        { "private_key", strHex(accountKey.data(), 32).c_str() },
-        { "account_id", strAccountID },
+        { "private_key", strHex(keyData.secretKey.data(), 32).c_str() },
+        { "account_id", toBase58(keyData.accountID).c_str() },
     }).toJson();
 
     QFile keyFile;
     keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
     keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
-    keyFile.write(keyData, keyData.size());
+    keyFile.write(keyJSONData, keyJSONData.size());
     keyFile.close();
 }
 
 void WalletMain::newKey()
 {
     using namespace ripple;
-    std::tie(publicKey, accountKey) = randomKeyPair(KeyType::secp256k1);
-    strAccountID = toBase58(calcAccountID(publicKey)).c_str();
+    std::tie(keyData.publicKey, keyData.secretKey) = randomKeyPair(KeyType::secp256k1);
+    keyData.accountID = calcAccountID(keyData.publicKey);
     saveKeys();
 }
 
-bool WalletMain::importKey(const QString& keyData)
+bool WalletMain::importKey(const QString& keyString)
 {
     using namespace ripple;
-    auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, keyData.toStdString());
+    auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, keyString.toStdString());
     if (! decodeResult)
         return false; // Incorrect WIF string
-    accountKey = *decodeResult;
-    publicKey = derivePublicKey(KeyType::secp256k1, accountKey);
-    strAccountID = toBase58(calcAccountID(publicKey)).c_str();
+    keyData.secretKey = *decodeResult;
+    keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+    keyData.accountID = calcAccountID(keyData.publicKey);
     saveKeys();
     return true;
 }
 
-QString WalletMain::exportKey()
+QString WalletMain::exportKey(QString& errorMsg)
 {
     using namespace ripple;
-    return toWIF(accountKey).c_str();
+    if (askPassword(errorMsg))
+        return toWIF(keyData.secretKey).c_str();
+    return "";
 }
 
 
-void WalletMain::askPassword()
+bool WalletMain::askPassword(QString& errorMsg)
 {
-    // TODO
+    using namespace ripple;
+
+    if (keyData.nDeriveIterations == 0)
+        return true;
+
+    try
+    {
+        while (true)
+        {
+            EnterPassword pwDialog;
+            if (pwDialog.exec() == QDialog::Accepted) {
+
+                bool fOk = true;
+                if (fOk) fOk = decryptKey(keyData.encryptedKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.secretKey);
+                if (fOk)
+                {
+                    keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+                    fOk = (keyData.accountID == calcAccountID(keyData.publicKey));
+                }
+
+                if (fOk) return true;
+
+                // Wrong password, try again
+                continue;
+            }
+            else
+            {
+                // User refused to enter the password
+                errorMsg = "Password";
+                return false;
+            }
+        }
+    }
+    catch(std::exception e)
+    {
+        errorMsg = e.what();
+    }
+
+    return false;
 }
 
 WalletMain::WalletMain(QWidget *parent) :
@@ -316,6 +363,7 @@ void WalletMain::onConnectionError(QAbstractSocket::SocketError error)
 
 void WalletMain::setOnline(bool flag, const QString& reason)
 {
+    QString strAccountID = ripple::toBase58(keyData.accountID).c_str();
     this->setWindowTitle(QString("RMC Wallet [%1%2]").arg(strAccountID).arg(flag ? "" : ", offline"));
     networkStatusLabel.setText(QString("Network status: %1").arg(reason));
 
@@ -375,7 +423,7 @@ void WalletMain::setupControls(QWidget *parent)
     ui->statusBar->addWidget(&balanceLabel);
     ui->statusBar->addWidget(&ledgerLabel);
     ui->statusBar->addWidget(&networkStatusLabel);
-    ui->actionEncrypt_wallet->setDisabled(encrypted);
+    ui->actionEncrypt_wallet->setDisabled(keyData.nDeriveIterations != 0);
 }
 
 WalletMain::~WalletMain()
@@ -513,6 +561,9 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
         return;
     }
 
+    // Get account ID as string.
+    QString strAccountID = ripple::toBase58(keyData.accountID).c_str();
+
     // Parse transaction metadata
     if (txObj["TransactionType"].toString() == "Payment" && !txObj["Amount"].isObject())
     {
@@ -611,6 +662,9 @@ void WalletMain::accTxResponse(QJsonObject obj)
     QJsonObject result = obj["result"].toObject();
     QJsonArray txes = result["transactions"].toArray();
 
+    // Get account ID as string.
+    QString strAccountID = ripple::toBase58(keyData.accountID).c_str();
+
     std::vector<std::vector<QString> > rowData;
     for (int i = 0; i < txes.size(); i++)
     {
@@ -683,7 +737,7 @@ void WalletMain::accInfoRequest()
        QJsonObject {
         {"id", nRequestID++},
         {"command", "account_info"},
-        {"account",  strAccountID},
+        {"account",  ripple::toBase58(keyData.accountID).c_str() },
     }).toJson());
 }
 
@@ -696,7 +750,7 @@ void WalletMain::accTxRequest()
             QJsonObject {
                 {"id", nRequestID++},
                 {"command", "account_tx"},
-                {"account", strAccountID },
+                {"account", ripple::toBase58(keyData.accountID).c_str() },
                 {"ledger_index_min", -1 },
                 {"ledger_index_max", -1 },
                 //{"limit", -1 },
@@ -726,7 +780,7 @@ void WalletMain::subsLedgerAndAccountRequest()
             QJsonObject {
                 {"id", nRequestID++},
                 {"command", "subscribe"},
-                {"accounts", QJsonArray { strAccountID } },
+                {"accounts", QJsonArray { ripple::toBase58(keyData.accountID).c_str() } },
                 {"streams", QJsonArray { "ledger" } },
         }).toJson());
 }
@@ -745,7 +799,7 @@ void WalletMain::on_clearButton_clicked()
 
 void WalletMain::on_previewButton_clicked()
 {
-    if (ui->receiverAddressEdit->text() == strAccountID)
+    if (ui->receiverAddressEdit->text() == ripple::toBase58(keyData.accountID).c_str() )
     {
         showMessage(QString("Error"), QString("Sending to self basically has no sense and is not supported."), 1);
         return;
@@ -767,7 +821,9 @@ void WalletMain::on_previewButton_clicked()
                 ui->receiverAddressEdit->text(), nAmount, nTransactionFee, nDestinationID,
                     transactionJSON, transactionHex, strError);
     if (! result)
-        showMessage(QString("Error"), strError, 1);
+    {
+        if (strError != "Password") showMessage(QString("Error"), strError, 1);
+    }
     else
     {
         TransactionPreview preview(NULL, transactionJSON, transactionHex);
@@ -786,7 +842,7 @@ void WalletMain::on_previewButton_clicked()
 
 void WalletMain::on_sendButton_clicked()
 {
-    if (ui->receiverAddressEdit->text() == strAccountID)
+    if (ui->receiverAddressEdit->text() == ripple::toBase58(keyData.accountID).c_str())
     {
         showMessage(QString("Error"), QString("Sending to self basically has no sense and is not supported."), 1);
         return;
@@ -808,10 +864,10 @@ void WalletMain::on_sendButton_clicked()
 
     bool result = createPaymentTx(
                 ui->receiverAddressEdit->text(), nAmount, nTransactionFee, nDestinationID, transactionJSON, transactionHex, strError);
-    if (! result)
-        showMessage(QString("Error"), strError, 1);
-    else
-    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", sendMessage, QMessageBox::Yes|QMessageBox::No).exec())
+    if (! result ) {
+        if (strError != "Password") showMessage(QString("Error"), strError, 1);
+    }
+    else if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", sendMessage, QMessageBox::Yes|QMessageBox::No).exec())
     {
         // Submit transaction and disable send button till confirmation from server
         submitRequest(transactionHex);
@@ -860,7 +916,17 @@ void WalletMain::on_actionExport_key_triggered()
 {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->clear();
-    clipboard->setText(exportKey());
+    QString errorStr;
+    QString keyWIF = exportKey(errorStr);
+
+    if (keyWIF == "") {
+        if (errorStr != "Password")
+            showMessage("Error", QString("Unable to decrypt your private key:") + errorStr, 1);
+        return;
+    }
+
+    keyData.secretKey.~SecretKey();
+    clipboard->setText(keyWIF);
     showMessage("Export", QString("Your key is in clipboard now."), 0);
 }
 
@@ -868,7 +934,7 @@ void WalletMain::on_actionCopy_account_address_triggered()
 {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->clear();
-    clipboard->setText(strAccountID);
+    clipboard->setText(ripple::toBase58(keyData.accountID).c_str());
     showMessage("Copy account ID", QString("Your address is in clipboard now."), 0);
 }
 
@@ -881,26 +947,26 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 
     if (pwDialog.exec() == QDialog::Accepted)
     {
-        std::vector<unsigned char> salt, cryptedKey;
-        int nDeriveIterations;
-        if (! encryptKey(accountKey, pwDialog.getPassword().toStdString(), salt, nDeriveIterations, cryptedKey))
+        if (! encryptKey(keyData.secretKey, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.encryptedKey))
         {
             showMessage("Error", "Error while encrypting your wallet", 2);
             return;
         }
 
-        auto keyData = QJsonDocument (QJsonObject
+        auto keyJSONData = QJsonDocument (QJsonObject
         {
-            { "encrypted_private_key", strHex(cryptedKey.begin(), cryptedKey.size()).c_str() },
-            { "salt", strHex(salt.begin(), salt.size()).c_str() },
-            { "iterations", nDeriveIterations },
-            { "account_id", strAccountID },
+            { "encrypted_private_key", strHex(keyData.encryptedKey.begin(), keyData.encryptedKey.size()).c_str() },
+            { "salt", strHex(keyData.salt.begin(), keyData.salt.size()).c_str() },
+            { "iterations", keyData.nDeriveIterations },
+            { "account_id", toBase58(keyData.accountID).c_str() },
         }).toJson();
+
+        keyData.secretKey.~SecretKey(); // Destroy secret key object
 
         QFile keyFile;
         keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
         keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
-        keyFile.write(keyData, keyData.size());
+        keyFile.write(keyJSONData, keyJSONData.size());
         keyFile.close();
 
         showMessage("Information", "Your wallet file was successfully encrypted.", 0);

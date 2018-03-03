@@ -10,10 +10,15 @@ EnterPassword::EnterPassword(QWidget *parent) :
 
 EnterPassword::~EnterPassword()
 {
+    ui->passwordInput->setText(QString(" ").repeated(ui->passwordInput->text().size()));
     delete ui;
 }
 
-QString EnterPassword::getPassword()
+secure::string EnterPassword::getPassword()
 {
-    return ui->passwordInput->text();
+    secure::string strPassword;
+    strPassword.reserve(1024);
+    strPassword.assign(ui->passwordInput->text().toStdString().c_str());
+    return strPassword;
 }
+

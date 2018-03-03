@@ -2,6 +2,7 @@
 #define ENTERPASSWORD_H
 
 #include <QDialog>
+#include "encryption.h"
 
 namespace Ui {
 class EnterPassword;
@@ -14,7 +15,7 @@ class EnterPassword : public QDialog
 public:
     explicit EnterPassword(QWidget *parent = 0);
     ~EnterPassword();
-    QString getPassword();
+    secure::string getPassword();
 
 private:
     Ui::EnterPassword *ui;

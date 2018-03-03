@@ -22,6 +22,15 @@ class WalletMain;
 
 #include "msgkind.h"
 
+struct KeyData {
+    ripple::SecretKey secretKey;
+    ripple::PublicKey publicKey;
+    std::vector<unsigned char> encryptedKey;
+    std::vector<unsigned char> salt;
+    int nDeriveIterations = 0; // zero means absence of encryption
+    ripple::AccountID accountID;
+};
+
 class WalletMain : public QMainWindow
 {
     Q_OBJECT
@@ -67,16 +76,8 @@ private:
     QWebSocket m_webSocket;
     int nConnectAttempt = 0;
 
-    // Public Key
-    ripple::PublicKey publicKey;
-
-    // Account key
-    ripple::SecretKey accountKey;
-
-    // Acccount ID
-    QString strAccountID;
-
-    bool encrypted;
+    // Wallet data
+    KeyData keyData;
 
     // RPC Request ID
     int nRequestID = 1;
@@ -126,10 +127,10 @@ private:
     void saveKeys();
     void newKey();
     bool importKey(const QString& keyData);
-    QString exportKey();
+    QString exportKey(QString& errorMsg);
 
     // Ask for password
-    void askPassword();
+    bool askPassword(QString& errorMsg);
 
     // Create and sign transaction
     bool createPaymentTx(const QString& receiverAccount, std::int64_t nAmount, std::int64_t nTransactionFee, std::int64_t nDestinationID, QString& dataJson, QString& dataHex, QString&errorMsg);
