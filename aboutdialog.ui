@@ -133,7 +133,7 @@
     <widget class="QLabel" name="versionLabel">
      <property name="text">
       <string>RMC GUI Application 
-Version 0.0.1</string>
+Version 0.0.2</string>
      </property>
     </widget>
    </item>
