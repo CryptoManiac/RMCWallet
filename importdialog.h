@@ -2,6 +2,7 @@
 #define IMPORTDIALOG_H
 
 #include <QDialog>
+#include "encryption.h"
 
 namespace Ui {
 class ImportDialog;
@@ -13,7 +14,7 @@ class ImportDialog : public QDialog
 
 public:
     explicit ImportDialog(QWidget *parent = 0);
-    QString getKeyData();
+    secure::string getKeyData();
     void hideNewKeyLabel();
     ~ImportDialog();
 

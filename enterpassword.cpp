@@ -1,11 +1,13 @@
 #include "enterpassword.h"
 #include "ui_enterpassword.h"
 
-EnterPassword::EnterPassword(QWidget *parent) :
+EnterPassword::EnterPassword(QWidget *parent, bool isConfirmation) :
     QDialog(parent),
     ui(new Ui::EnterPassword)
 {
     ui->setupUi(this);
+    if (isConfirmation)
+        ui->encryptedIntroLabel->setText("Confirm your password:");
 }
 
 EnterPassword::~EnterPassword()

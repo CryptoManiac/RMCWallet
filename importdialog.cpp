@@ -10,12 +10,16 @@ ImportDialog::ImportDialog(QWidget *parent) :
 
 ImportDialog::~ImportDialog()
 {
+    ui->keyInput->setText(QString(" ").repeated(ui->keyInput->text().size()));
     delete ui;
 }
 
-QString ImportDialog::getKeyData()
+secure::string ImportDialog::getKeyData()
 {
-    return ui->keyInput->text();
+    secure::string strKeyData;
+    strKeyData.reserve(1024);
+    strKeyData.assign(ui->keyInput->text().toStdString().c_str());
+    return strKeyData;
 }
 
 void ImportDialog::hideNewKeyLabel()

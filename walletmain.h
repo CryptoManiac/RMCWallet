@@ -16,6 +16,8 @@
 #include <ripple/protocol/PublicKey.h>
 #include <ripple/protocol/SecretKey.h>
 
+#include "encryption.h"
+
 namespace Ui {
 class WalletMain;
 }
@@ -126,7 +128,7 @@ private:
     bool loadWallet(QString& errStr);
     void saveKeys();
     void newKey();
-    bool importKey(const QString& keyData);
+    bool importKey(const secure::string& keyData);
     QString exportKey(QString& errorMsg);
 
     // Ask for password

@@ -19,7 +19,6 @@
 #include "intvalidator.h"
 #include "importdialog.h"
 #include "enterpassword.h"
-#include "encryption.h"
 #include "aboutdialog.h"
 
 #include <ripple/protocol/AccountID.h>
@@ -185,7 +184,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
 
             while (true)
             {
-                EnterPassword pwDialog;
+                EnterPassword pwDialog(this);
                 if (pwDialog.exec() == QDialog::Accepted) {
 
                     bool fOk = true;
@@ -246,10 +245,10 @@ void WalletMain::newKey()
     saveKeys();
 }
 
-bool WalletMain::importKey(const QString& keyString)
+bool WalletMain::importKey(const secure::string& keyString)
 {
     using namespace ripple;
-    auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, keyString.toStdString());
+    auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, keyString.c_str());
     if (! decodeResult)
         return false; // Incorrect WIF string
     keyData.secretKey = *decodeResult;
@@ -279,7 +278,7 @@ bool WalletMain::askPassword(QString& errorMsg)
     {
         while (true)
         {
-            EnterPassword pwDialog;
+            EnterPassword pwDialog(this);
             if (pwDialog.exec() == QDialog::Accepted) {
 
                 bool fOk = true;
@@ -949,13 +948,22 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 {
     using namespace ripple;
 
-    EnterPassword pwDialog;
+    EnterPassword pwDialog(this), pwDialogConf(this, true);
 
-    if (pwDialog.exec() == QDialog::Accepted)
+    if (pwDialog.exec() == QDialog::Accepted && pwDialogConf.exec() == QDialog::Accepted)
     {
+        const auto& strPassword1 = pwDialog.getPassword();
+        const auto& strPassword2 = pwDialogConf.getPassword();
+
+        if (strPassword1 != strPassword2)
+        {
+            showMessage("Error", "Entered passwords do not match.", 2);
+            return;
+        }
+
         secure::secret secretData;
         secretData.assign(keyData.secretKey.data(), keyData.secretKey.data() + keyData.secretKey.size());
-        if (! encryptKey(secretData, pwDialog.getPassword(), keyData.salt, keyData.nDeriveIterations, keyData.encryptedKey))
+        if (! encryptKey(secretData, strPassword1, keyData.salt, keyData.nDeriveIterations, keyData.encryptedKey))
         {
             showMessage("Error", "Error while encrypting your wallet", 2);
             return;
