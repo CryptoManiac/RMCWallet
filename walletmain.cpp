@@ -948,6 +948,11 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 {
     using namespace ripple;
 
+    if (keyData.nDeriveIterations != 0) {
+        showMessage("Error", "Changing passphrase is not yet implemented.", 2);
+        return;
+    }
+
     EnterPassword pwDialog(this), pwDialogConf(this, true);
 
     if (pwDialog.exec() == QDialog::Accepted && pwDialogConf.exec() == QDialog::Accepted)
@@ -981,6 +986,15 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 
         QFile keyFile;
         keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
+        keyFile.open(QIODevice::ReadWrite | QIODevice::Text);
+
+        // Overwrite old file contents with zeros
+        QByteArray arrZeros(keyFile.size(), '0');
+        keyFile.write(arrZeros, arrZeros.size());
+        keyFile.flush();
+        keyFile.close();
+
+        // Write encrypted data
         keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
         keyFile.write(keyJSONData, keyJSONData.size());
         keyFile.close();
