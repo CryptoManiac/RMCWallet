@@ -28,7 +28,7 @@ CONFIG += c++14
 
 #QMAKE_CXXFLAGS = -std=c++14
 
-INCLUDEPATH += ../rmc-libpp/extras/rippled/src
+INCLUDEPATH += ../rmc-libpp/extras/rmcd/src
 
 INCLUDEPATH += /usr/local/Cellar/openssl/1.0.2n/include/
 INCLUDEPATH += /usr/local/Cellar/boost/1.66.0/include/
