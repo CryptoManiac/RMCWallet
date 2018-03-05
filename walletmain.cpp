@@ -156,7 +156,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
                 return false;
             }
             keyData.secretKey = *decodeResult;
-            keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+            keyData.publicKey = derivePublicKey(keyData.secretKey);
             if (keyData.accountID != calcAccountID(keyData.publicKey))
             {
                 errorMsg = "Private key doesn't match your account ID, it looks like your wallet data was corrupted";
@@ -193,7 +193,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
                     if (fOk)
                     {
                         keyData.secretKey = SecretKey(Slice(&secretData[0], secretData.size()));
-                        keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+                        keyData.publicKey = derivePublicKey(keyData.secretKey);
                         fOk = (keyData.accountID == calcAccountID(keyData.publicKey));
                     }
 
@@ -240,7 +240,7 @@ void WalletMain::saveKeys()
 void WalletMain::newKey()
 {
     using namespace ripple;
-    std::tie(keyData.publicKey, keyData.secretKey) = randomKeyPair(KeyType::secp256k1);
+    std::tie(keyData.publicKey, keyData.secretKey) = randomKeyPair();
     keyData.accountID = calcAccountID(keyData.publicKey);
     saveKeys();
 }
@@ -252,7 +252,7 @@ bool WalletMain::importKey(const secure::string& keyString)
     if (! decodeResult)
         return false; // Incorrect WIF string
     keyData.secretKey = *decodeResult;
-    keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+    keyData.publicKey = derivePublicKey(keyData.secretKey);
     keyData.accountID = calcAccountID(keyData.publicKey);
     saveKeys();
     return true;
@@ -287,7 +287,7 @@ bool WalletMain::askPassword(QString& errorMsg)
                 if (fOk)
                 {
                     keyData.secretKey = SecretKey(Slice(&secretData[0], secretData.size()));
-                    keyData.publicKey = derivePublicKey(KeyType::secp256k1, keyData.secretKey);
+                    keyData.publicKey = derivePublicKey(keyData.secretKey);
                     fOk = (keyData.accountID == calcAccountID(keyData.publicKey));
                 }
 
