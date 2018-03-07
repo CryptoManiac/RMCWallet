@@ -94,7 +94,7 @@ private:
 
     QString ledgerHash;
     int64_t ledgerCloseTime;
-    int ledgerTransactions;
+    int ledgerTransactions = 0;
 
     // RPC request map
     std::map<int, MessageType> reqMap;
