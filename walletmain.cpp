@@ -408,9 +408,9 @@ void WalletMain::setupControls(QWidget *parent)
     ui->sendTransactionFeeValue->setValidator(amountValidator);
 
     // Setup tag validator
-    auto *tagValidator = new IntValidator(parent);
+    std::unique_ptr<IntValidator> tagValidator(new IntValidator(parent));
     amountValidator->setBottom(0);
-    ui->destinationTag->setValidator(tagValidator);
+    ui->destinationTag->setValidator(tagValidator.get());
 
     // Hide columns
     ui->txView->setColumnHidden(4, true);
