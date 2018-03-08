@@ -15,4 +15,4 @@ Windows x64 dependencies:
 
 https://drive.google.com/open?id=12tfyzT-9-86jUZMK6UE2hxRkYTdlwHIv
 
-These built using MT Release configuration using Visual Studio 2017.
+These builds were made with MT Release configuration using Visual Studio 2017.
