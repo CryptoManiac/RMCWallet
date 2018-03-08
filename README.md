@@ -11,10 +11,12 @@ Lightweight wallet for RMC with Qt based interface
 3. Clone this repository:
     git clone http://github.com/RussianMiningCoin/RMCWallet
 4. Run the following commands:
+```
     cd RMCWallet
     mkdir build
     cd build && qmake ..
     nmake
+```    
 5. You're done ;)
 
 ### Mac OS X
@@ -23,9 +25,11 @@ Lightweight wallet for RMC with Qt based interface
 3. Install the following Homebrew packages:
     brew install boost openssl cmake protobuf scons
 4. Clone and build ripple-libpp:
+```
     git clone https://github.com/RussianMiningCoin/rmc-libpp
     mkdir rmc-libpp/build && cd rmc-libpp/build
     cmake .. && make
+```
 5. Clone this repository and open RMCWallet.pro in Qt Creator.
 6. You should be able to build your project as usual. If it doesn't work then ensure that rmc-libpp tree is sharing parent directory with RMCWallet project.
 
