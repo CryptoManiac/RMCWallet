@@ -7,9 +7,9 @@
 class IntValidator : public QIntValidator
 {
 public:
-    IntValidator(double bottom, double top, QObject *parent = 0)
+    IntValidator(double bottom, double top, QObject *parent = nullptr)
         :QIntValidator( bottom, top, parent) {};
-    IntValidator(QObject *parent = 0)
+    IntValidator(QObject *parent = nullptr)
         :QIntValidator(parent) {};
     QValidator::State validate(QString &input, int &pos) const
     {

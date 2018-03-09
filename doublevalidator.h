@@ -7,9 +7,9 @@
 class DoubleValidator : public QDoubleValidator
 {
 public:
-    DoubleValidator(double bottom, double top, int decimals, QObject *parent = 0)
+    DoubleValidator(double bottom, double top, int decimals, QObject *parent = nullptr)
         :QDoubleValidator( bottom, top, decimals, parent) {};
-    DoubleValidator(QObject *parent = 0)
+    DoubleValidator(QObject *parent = nullptr)
         :QDoubleValidator(parent) {};
     QValidator::State validate(QString &input, int &pos) const
     {

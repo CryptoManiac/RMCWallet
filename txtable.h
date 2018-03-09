@@ -7,8 +7,8 @@
 class TxTable : public QTableWidget
 {
 public:
-    explicit TxTable(QWidget *parent = Q_NULLPTR) : QTableWidget(parent) { Init(parent); }
-    TxTable(int rows, int columns, QWidget *parent = Q_NULLPTR) : QTableWidget(rows, columns, parent) { Init(parent); }
+    explicit TxTable(QWidget *parent = nullptr) : QTableWidget(parent) { Init(parent); }
+    TxTable(int rows, int columns, QWidget *parent = nullptr) : QTableWidget(rows, columns, parent) { Init(parent); }
 
 private:
     void Init(QWidget *parent);

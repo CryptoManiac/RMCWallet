@@ -31,7 +31,7 @@ namespace secure
 
         void deallocate(T* p, std::size_t n)
         {
-            if (p != NULL)
+            if (p != nullptr)
                 OPENSSL_cleanse(p, sizeof(T) * n);
             std::allocator<T>::deallocate(p, n);
         }

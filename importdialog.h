@@ -13,7 +13,7 @@ class ImportDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit ImportDialog(QWidget *parent = 0);
+    explicit ImportDialog(QWidget *parent = nullptr);
     secure::string getKeyData();
     void hideNewKeyLabel();
     ~ImportDialog();
