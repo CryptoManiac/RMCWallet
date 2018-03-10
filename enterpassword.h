@@ -13,7 +13,7 @@ class EnterPassword : public QDialog
     Q_OBJECT
 
 public:
-    explicit EnterPassword(QWidget *parent = 0, bool isConfirmation = false);
+    explicit EnterPassword(QWidget *parent = nullptr, bool isConfirmation = false);
     ~EnterPassword();
     secure::string getPassword();
 

@@ -12,7 +12,7 @@ class TransactionView : public QDialog
     Q_OBJECT
 
 public:
-    explicit TransactionView(QWidget *parent = 0, const QString& txJson = "");
+    explicit TransactionView(QWidget *parent = nullptr, const QString& txJson = "");
     ~TransactionView();
 
 private:

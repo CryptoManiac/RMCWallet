@@ -13,7 +13,7 @@ class TransactionPreview : public QDialog
     Q_OBJECT
 
 public:
-    explicit TransactionPreview(QWidget *parent = 0, const QString& txJson = "", const QString& txHex = "");
+    explicit TransactionPreview(QWidget *parent = nullptr, const QString& txJson = "", const QString& txHex = "");
     ~TransactionPreview();
 
 private slots:

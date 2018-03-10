@@ -38,11 +38,11 @@ static void showMessage(const QString& strCaption, const QString& strMessage, in
 {
     QMessageBox messageBox;
     if (nType == 0)
-        messageBox.information(NULL, strCaption, strMessage);
+        messageBox.information(nullptr, strCaption, strMessage);
     if (nType == 1)
-        messageBox.warning(NULL, strCaption, strMessage);
+        messageBox.warning(nullptr, strCaption, strMessage);
     if (nType == 2)
-        messageBox.critical(NULL, strCaption, strMessage);
+        messageBox.critical(nullptr, strCaption, strMessage);
     messageBox.setFixedSize(500, 200);
 }
 
@@ -647,7 +647,7 @@ void WalletMain::txItemClicked(int nRow, int nCol)
 {
     QTableWidgetItem *item = new QTableWidgetItem;
     item = ui->txView->item(nRow, 4);
-    TransactionView txDlg(NULL, item->text());
+    TransactionView txDlg(nullptr, item->text());
     txDlg.exec();
 }
 
@@ -831,7 +831,7 @@ void WalletMain::on_previewButton_clicked()
     }
     else
     {
-        TransactionPreview preview(NULL, transactionJSON, transactionHex);
+        TransactionPreview preview(nullptr, transactionJSON, transactionHex);
         if (preview.exec() == QDialog::Accepted)
         {
             // Submit transaction and disable send button till confirmation from server

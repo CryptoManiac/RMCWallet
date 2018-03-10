@@ -38,7 +38,7 @@ class WalletMain : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit WalletMain(QWidget *parent = 0);
+    explicit WalletMain(QWidget *parent = nullptr);
     ~WalletMain();
 
 private Q_SLOTS:
