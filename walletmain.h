@@ -93,7 +93,7 @@ private:
     int64_t nSequence = 0;
 
     QString ledgerHash;
-    int64_t ledgerCloseTime;
+    int64_t ledgerCloseTime = 0;
     int ledgerTransactions = 0;
 
     // RPC request map

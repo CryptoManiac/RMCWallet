@@ -82,7 +82,7 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
 
     try
     {
-        QString errorStr;
+        QString errorStr("");
         if (! askPassword(errorStr)) {
             if (errorStr == "Password")
                 errorMsg = "Password";
@@ -97,7 +97,7 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
         dataJson = noopTx.getJson(0).toStyledString().c_str();
         dataHex = strHex(noopTx.getSerializer().peekData()).c_str();
     }
-    catch(std::exception e)
+    catch(const std::exception e)
     {
         errorMsg = e.what();
         return false;
@@ -304,7 +304,7 @@ bool WalletMain::askPassword(QString& errorMsg)
             }
         }
     }
-    catch(std::exception e)
+    catch(const std::exception e)
     {
         errorMsg = e.what();
     }
@@ -321,7 +321,7 @@ WalletMain::WalletMain(QWidget *parent) :
 #error "SSL support is required"
 #endif
 
-    QString errStr;
+    QString errStr("");
     if (! loadWallet(errStr) )
     {
         if (errStr != "Password")
