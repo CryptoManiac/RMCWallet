@@ -612,7 +612,7 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
         };
 
         ui->txView->insertRow(0);
-        for (auto nCol = 0; nCol < newRow.size(); ++nCol)
+        for (auto nCol = 0u; nCol < newRow.size(); ++nCol)
         {
             QTableWidgetItem *newItem = new QTableWidgetItem();
             newItem->setText(newRow[nCol]);
@@ -695,9 +695,9 @@ void WalletMain::accTxResponse(QJsonObject obj)
     ui->txView->clearContents();
     ui->txView->setRowCount(rowData.size());
 
-    for (auto nRow = 0; nRow < rowData.size(); ++nRow)
+    for (auto nRow = 0u; nRow < rowData.size(); ++nRow)
     {
-        for (auto nCol = 0; nCol < rowData[nRow].size(); ++nCol)
+        for (auto nCol = 0u; nCol < rowData[nRow].size(); ++nCol)
         {
             QTableWidgetItem *newItem = new QTableWidgetItem();
             newItem->setText(rowData[nRow][nCol]);
