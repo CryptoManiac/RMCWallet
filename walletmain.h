@@ -53,9 +53,9 @@ private Q_SLOTS:
 
     // Menu actions
     void on_actionExit_triggered();
-    void on_actionReinitializeWallet_triggered();
     void on_actionImport_key_triggered();
     void on_actionExport_key_triggered();
+    void on_actionGenerateNew_triggered();
     void on_actionEncrypt_wallet_triggered();
     void on_actionCopy_account_address_triggered();
     void on_actionReconnect_triggered();
@@ -63,6 +63,7 @@ private Q_SLOTS:
 
     // Transaction history actions
     void txItemClicked(int nRow, int nCol);
+
 
 private:
     // Client UI pointer

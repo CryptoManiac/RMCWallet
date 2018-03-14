@@ -1028,15 +1028,6 @@ void WalletMain::on_sendButton_clicked()
     }
 }
 
-void WalletMain::on_actionReinitializeWallet_triggered()
-{
-    if (QMessageBox::Yes == QMessageBox(QMessageBox::Warning, "Confirmation", "Are you SURE you want to OVERWRITE your private key with newly generated one? This could cause LOSS of your funds if you have no backup of your current key.", QMessageBox::Yes|QMessageBox::No).exec())
-    {
-        newKey();
-        QTimer::singleShot(250, qApp, SLOT(quit()));
-    }
-}
-
 void WalletMain::on_actionImport_key_triggered()
 {
     ImportDialog importReq;
@@ -1050,7 +1041,6 @@ void WalletMain::on_actionImport_key_triggered()
         {
             if(!importKey(importReq.getKeyData()))
                 continue; // Incorrect WIF string, ask user again
-            QTimer::singleShot(250, qApp, SLOT(quit()));
             break;
         }
         else
@@ -1058,6 +1048,14 @@ void WalletMain::on_actionImport_key_triggered()
             // User refused
             break;
         }
+    }
+}
+
+void WalletMain::on_actionGenerateNew_triggered()
+{
+    if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", "Are you sure you need another account?", QMessageBox::Yes|QMessageBox::No).exec())
+    {
+        newKey();
     }
 }
 
@@ -1198,5 +1196,4 @@ int main(int argc, char *argv[])
 
     return a.exec();
 }
-
 
