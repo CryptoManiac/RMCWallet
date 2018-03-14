@@ -205,6 +205,83 @@ bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg
     return true;
 }
 
+bool WalletMain::convertLegacyWallet(const QJsonObject& keyObj, QString& errorMsg)
+{
+    using namespace ripple;
+
+    KeyData keyData;
+    bool result = processSingleWalletEntry(keyObj, keyData, errorMsg);
+
+    if (! keyData.encryptedKey.empty())
+    {
+        // Encrypted wallet
+        nDeriveIterations = keyObj["iterations"].toInt();
+        if (nDeriveIterations == 0) nDeriveIterations = 500000;
+
+        auto decodeResult1 = parseHex<std::vector<unsigned char> >(keyObj["salt"].toString().toStdString());
+        if (! decodeResult1)
+        {
+            errorMsg = "Unable to decode encrypted wallet metadata";
+            return false;
+        }
+
+        mSalt = *decodeResult1;
+
+        secure::string strPassword;
+
+        while (true)
+        {
+            EnterPassword pwDialog(this);
+            if (pwDialog.exec() == QDialog::Accepted) {
+                bool fOk = true;
+                strPassword = pwDialog.getPassword();
+                if (fOk) fOk = legacyDecryptKey(keyData.encryptedKey, strPassword, mSalt, nDeriveIterations, keyData.secretKey);
+                if (fOk) break;
+
+                // Wrong password, try again
+                continue;
+            }
+            else
+            {
+                // User refused to enter the password
+                errorMsg = "Password";
+                return false;
+            }
+        }
+
+        secure::string rsaPrivKey;
+        if (! generateRSAKeys(rsaPrivKey, mRSAPubKey))
+        {
+            errorMsg = "Unable to generate RSA key pair";
+            return false;
+        }
+
+        if (! encryptRSAKey(rsaPrivKey, strPassword, mSalt, nDeriveIterations, mRSACryptedkey))
+        {
+            errorMsg = "Error while encrypting RSA private key";
+            return false;
+        }
+
+        if (! encryptSecretKey(keyData.secretKey, mRSAPubKey, keyData.encryptedKey))
+        {
+            errorMsg = "Error while encrypting your wallet";
+            return false;
+        }
+        keyData.secretKey.~SecretKey(); // Destroy secret key object
+    }
+
+    keyStore.push_back(keyData);
+    accounts.push_back(toBase58(keyData.accountID).c_str());
+    balances.push_back(0);
+    sequences.push_back(0);
+    transactions.push_back(std::vector<std::vector<QString> >());
+    nCurrentAccount = 0;
+
+    saveKeys();
+
+    return true;
+}
+
 
 bool WalletMain::loadWallet(QString& errorMsg)
 {
@@ -264,16 +341,8 @@ bool WalletMain::loadWallet(QString& errorMsg)
         }
         else
         {
-            // Single wallet
-            KeyData keyData;
-            bool result = processSingleWalletEntry(keyObj, keyData, errorMsg);
-            keyStore.push_back(keyData);
-            accounts.push_back(toBase58(keyData.accountID).c_str());
-            balances.push_back(0);
-            sequences.push_back(0);
-            transactions.push_back(std::vector<std::vector<QString> >());
-            nCurrentAccount = 0;
-            return result;
+            // Convert single wallets
+            return convertLegacyWallet(keyObj, errorMsg);
         }
     }
 

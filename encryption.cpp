@@ -119,6 +119,41 @@ bool decryptRSAKey(const std::vector<unsigned char>& cryptedKey, const secure::s
     return true;
 }
 
+bool legacyDecryptKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, ripple::SecretKey& secret)
+{
+    using namespace ripple;
+
+    unsigned char chKey[32];
+    unsigned char chIV[32];
+
+    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &salt[0],
+            (const unsigned char *)&strPassword[0], strPassword.size(), nDeriveIterations, chKey, chIV);
+
+    // plaintext will always be equal to or lesser than length of ciphertext
+    int nLen = cryptedKey.size();
+    int nPLen = nLen, nFLen = 0;
+
+    secure::secret decryptedKey;
+    decryptedKey.resize(nLen);
+
+    EVP_CIPHER_CTX ctx;
+
+    bool fOk = true;
+
+    EVP_CIPHER_CTX_init(&ctx);
+    if (fOk) fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), nullptr, chKey, chIV) != 0;
+    if (fOk) fOk = EVP_DecryptUpdate(&ctx, (unsigned char*)&decryptedKey[0], &nPLen, &cryptedKey[0], nLen) != 0;
+    if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, (unsigned char*)&decryptedKey[0] + nPLen, &nFLen) != 0;
+    EVP_CIPHER_CTX_cleanup(&ctx);
+
+    if (!fOk) return false;
+
+    decryptedKey.resize(nPLen + nFLen);
+    secret = SecretKey(Slice(decryptedKey.data(), decryptedKey.size()));
+
+    return true;
+}
+
 //// Asymmetric encryption
 
 bool encryptSecretKey(const ripple::SecretKey& secret, const std::string& encryptionKey, std::vector<unsigned char>& encrypted)

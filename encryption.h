@@ -52,6 +52,7 @@ public:
 bool generateRSAKeys(secure::string& strPrivKey, std::string& strPubKey);
 bool encryptRSAKey(const secure::string& keyData, const secure::string& strPassword, std::vector<unsigned char>& salt, int& nDeriveIterations, std::vector<unsigned char>& cryptedKey);
 bool decryptRSAKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, secure::string& decryptedKey);
+bool legacyDecryptKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, ripple::SecretKey& secret);
 
 
 bool encryptSecretKey(const ripple::SecretKey& secret, const std::string& encryptionKey, std::vector<unsigned char>& encrypted);
