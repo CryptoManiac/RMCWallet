@@ -95,7 +95,7 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
         }
 
         noopTx.sign(keyData.publicKey, keyData.secretKey);
-        if (! keyData.encryptedKey.empty())
+        if (nDeriveIterations != 0)
             keyData.secretKey.~SecretKey();
         dataJson = noopTx.getJson(0).toStyledString().c_str();
         dataHex = strHex(noopTx.getSerializer().peekData()).c_str();
@@ -299,16 +299,29 @@ void WalletMain::saveKeys()
         keysArr.push_back(keyObj);
     }
 
-    auto keyJSONData = QJsonDocument (QJsonObject
+    QJsonObject walletObj
     {
-        { "main_account", nCurrentAccount },
-        { "accounts", keysArr },
-    }).toJson();
+            { "main_account", nCurrentAccount },
+            { "accounts", keysArr },
+    };
+
+    if (nDeriveIterations != 0)
+    {
+        walletObj["encryption"] = QJsonObject
+        {
+            { "master_public_key", mRSAPubKey.c_str() },
+            { "encrypted_master_private_key", strHex(mRSACryptedkey.data(), mRSACryptedkey.size()).c_str() },
+            { "salt", strHex(mSalt.data(), mSalt.size()).c_str() },
+            { "iterations", nDeriveIterations }
+        };
+    }
+
+    auto walletDoc = QJsonDocument (walletObj).toJson();
 
     QFile keyFile;
     keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
     keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
-    keyFile.write(keyJSONData, keyJSONData.size());
+    keyFile.write(walletDoc, walletDoc.size());
     keyFile.close();
 }
 
@@ -318,6 +331,18 @@ void WalletMain::newKey()
     KeyData keyData;
     std::tie(keyData.publicKey, keyData.secretKey) = randomKeyPair();
     keyData.accountID = calcAccountID(keyData.publicKey);
+
+    if (nDeriveIterations != 0)
+    {
+        // Encrypt new key
+        if (! encryptSecretKey(keyData.secretKey, mRSAPubKey, keyData.encryptedKey))
+        {
+            showMessage("Error", "Error while encrypting new key, operation has been aborted", 2);
+            return;
+        }
+        keyData.secretKey.~SecretKey(); // Destroy secret key object
+    }
+
     keyStore.push_back(keyData);
     balances.push_back(0);
     sequences.push_back(0);
@@ -335,6 +360,18 @@ bool WalletMain::importKey(const secure::string& keyString)
     keyData.secretKey = *decodeResult;
     keyData.publicKey = derivePublicKey(keyData.secretKey);
     keyData.accountID = calcAccountID(keyData.publicKey);
+
+    if (nDeriveIterations != 0)
+    {
+        // Encrypt new key
+        if (! encryptSecretKey(keyData.secretKey, mRSAPubKey, keyData.encryptedKey))
+        {
+            showMessage("Error", "Error while encrypting new key, operation has been aborted", 2);
+            return false;
+        }
+        keyData.secretKey.~SecretKey(); // Destroy secret key object
+    }
+
     keyStore.push_back(keyData);
     balances.push_back(0);
     sequences.push_back(0);
@@ -372,7 +409,6 @@ bool WalletMain::askPassword(QString& errorMsg)
                 if (fOk)
                 {
                     fOk = decryptSecretKey(keyData.encryptedKey, decryptionKey, keyData.secretKey);
-                    //keyData.secretKey = SecretKey(Slice(&secretData[0], secretData.size()));
                     fOk = fOk && (keyData.accountID == calcAccountID(keyData.publicKey));
                 }
 

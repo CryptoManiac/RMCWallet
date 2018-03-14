@@ -461,17 +461,17 @@
   </action>
   <action name="actionImport_key">
    <property name="text">
-    <string>Replace account</string>
+    <string>Import key</string>
    </property>
   </action>
   <action name="actionReinitializeWallet">
    <property name="text">
-    <string>Reinitialize wallet</string>
+    <string>Generate new</string>
    </property>
   </action>
   <action name="actionExport_key">
    <property name="text">
-    <string>Export</string>
+    <string>Export current</string>
    </property>
   </action>
   <action name="actionEncrypt_wallet">
