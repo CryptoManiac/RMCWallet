@@ -957,8 +957,8 @@ void WalletMain::on_actionExit_triggered()
 void WalletMain::on_clearButton_clicked()
 {
     ui->receiverAddressEdit->setText("");
-    ui->amountToSend->setText("0");
-    ui->destinationTag->setText("0");
+    ui->amountToSend->setText("");
+    ui->destinationTag->setText("");
 }
 
 void WalletMain::on_previewButton_clicked()
@@ -1000,8 +1000,8 @@ void WalletMain::on_previewButton_clicked()
             ui->sendButton->setEnabled(false);
             ui->previewButton->setEnabled(false);
             ui->receiverAddressEdit->setText("");
-            ui->amountToSend->setText("0");
-            ui->destinationTag->setText("0");
+            ui->amountToSend->setText("");
+            ui->destinationTag->setText("");
         }
     }
 }
