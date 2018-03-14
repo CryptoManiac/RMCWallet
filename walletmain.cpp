@@ -630,9 +630,21 @@ void WalletMain::onTextMessageReceived(QString message)
         // Exctract and check ID against the map of previously made requests
         int nMsgId = msgObj["id"].toInt();
 
+        if (!msgObj["error"].isUndefined())
+        {
+            // QString errType = msgObj["error"].toString();
+            // if (errType == "actNotFound") ...
+
+            // TODO: Network error handling
+
+            // Remove message ID from the map and return
+            reqMap.erase(nMsgId);
+            return;
+        }
+
         if (msgObj["result"].isNull() || msgObj["result"].isUndefined())
         {
-            qDebug() << "Something went wrong, NULL data received insted of proper response";
+            qDebug() << "Something went wrong, NULL data received instead of proper response";
 
             // Remove message ID from the map and return
             reqMap.erase(nMsgId);
