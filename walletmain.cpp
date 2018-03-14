@@ -423,6 +423,9 @@ bool WalletMain::newKey(QString& newAccountID)
     transactions.push_back(std::vector<std::vector<QString> >());
     saveKeys();
 
+    accInfoRequest();
+    accTxRequest();
+
     return true;
 }
 
@@ -456,7 +459,9 @@ bool WalletMain::importKey(const secure::string& keyString)
     sequences.push_back(0);
     transactions.push_back(std::vector<std::vector<QString> >());
     saveKeys();
-    doReconnect();
+
+    accInfoRequest();
+    accTxRequest();
 
     return true;
 }
@@ -1295,8 +1300,10 @@ void WalletMain::on_actionSwitch_account_triggered()
        nCurrentAccount = accountDlg.getSelected();
        saveKeys();
        setOnline(true, "Account switched");
-       refreshTxView();
        // doReconnect();
+
+       accInfoRequest();
+       accTxRequest();
     }
 }
 
