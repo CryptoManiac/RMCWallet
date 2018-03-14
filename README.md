@@ -42,10 +42,10 @@ Should be similar to OS X steps. You may also need to build boost 1.66 though. P
 
 Windows x86 dependencies:
 
-https://drive.google.com/open?id=1JrLTExdlVGEy2Y8zC8n9hJrKvomHWJrW
+https://drive.google.com/open?id=1VFqrgcWCVxVxbbyL_vWWyjAF0IwmDG6y
 
 Windows x64 dependencies:
 
-https://drive.google.com/open?id=1hVwqMdqxgz8V1Ck8DQfWjvrYzMZGWhoZ
+https://drive.google.com/open?id=1kshBWtEySZyPBLphoe8a0sTFRBz6Myps
 
 These builds were made with MT Release configuration using Visual Studio 2017.

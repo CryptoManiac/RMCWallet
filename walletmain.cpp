@@ -359,7 +359,6 @@ bool WalletMain::askPassword(QString& errorMsg)
 
     if (nDeriveIterations == 0)
         return true;
-
     try
     {
         while (true)
@@ -799,9 +798,9 @@ void WalletMain::refreshTxView()
     ui->txView->clearContents();
     ui->txView->setRowCount(rowData.size());
 
-    for (size_t nRow = 0; nRow < rowData.size(); ++nRow)
+    for (auto nRow = 0u; nRow < rowData.size(); ++nRow)
     {
-        for (size_t nCol = 0; nCol < rowData[nRow].size(); ++nCol)
+        for (auto nCol = 0u; nCol < rowData[nRow].size(); ++nCol)
         {
             QTableWidgetItem *newItem = new QTableWidgetItem();
             newItem->setText(rowData[nRow][nCol]);
@@ -1076,7 +1075,6 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
         }
 
         secure::string rsaPrivKey;
-        int nDeriveIterations;
         if (! generateRSAKeys(rsaPrivKey, mRSAPubKey))
         {
             showMessage("Error", "Unable to generate RSA key pair", 2);
