@@ -529,13 +529,13 @@ void WalletMain::setOnline(bool flag, const QString& reason)
 void WalletMain::setupControls(QWidget *parent)
 {
     // Setup amount validator
-    auto *amountValidator = new DoubleValidator(parent);
+    std::unique_ptr<DoubleValidator> amountValidator(new DoubleValidator(parent));
     amountValidator->setDecimals(6);
     amountValidator->setBottom(0.00);
     amountValidator->setTop(10757.0);
     amountValidator->setNotation(QDoubleValidator::StandardNotation);
-    ui->amountToSend->setValidator(amountValidator);
-    ui->sendTransactionFeeValue->setValidator(amountValidator);
+    ui->amountToSend->setValidator(amountValidator.get());
+    ui->sendTransactionFeeValue->setValidator(amountValidator.get());
 
     // Setup tag validator
     std::unique_ptr<IntValidator> tagValidator(new IntValidator(parent));
