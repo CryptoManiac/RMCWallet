@@ -414,11 +414,13 @@ bool WalletMain::newKey(QString& newAccountID)
         keyData.secretKey.~SecretKey(); // Destroy secret key object
     }
 
+    newAccountID = toBase58(keyData.accountID).c_str();
+
     keyStore.push_back(keyData);
+    accounts.push_back(newAccountID);
     balances.push_back(0);
     sequences.push_back(0);
     transactions.push_back(std::vector<std::vector<QString> >());
-    newAccountID = toBase58(keyData.accountID).c_str();
     saveKeys();
 
     return true;
@@ -446,7 +448,10 @@ bool WalletMain::importKey(const secure::string& keyString)
         keyData.secretKey.~SecretKey(); // Destroy secret key object
     }
 
+    auto newAccountID = toBase58(keyData.accountID).c_str();
+
     keyStore.push_back(keyData);
+    accounts.push_back(newAccountID);
     balances.push_back(0);
     sequences.push_back(0);
     transactions.push_back(std::vector<std::vector<QString> >());
@@ -1289,7 +1294,9 @@ void WalletMain::on_actionSwitch_account_triggered()
     {
        nCurrentAccount = accountDlg.getSelected();
        saveKeys();
-       doReconnect();
+       setOnline(true, "Account switched");
+       refreshTxView();
+       // doReconnect();
     }
 }
 
