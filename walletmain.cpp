@@ -217,6 +217,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
     {
         // Brand new wallet
         ImportDialog importReq;
+        QString newAccountId;
         while (true)
         {
             // Ask user to import his WIF formatted key
@@ -225,7 +226,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
                 if(!importKey(importReq.getKeyData()))
                     continue; // Incorrect WIF string entered, ask user again
             }
-            else newKey(); // User refused, generating new private key
+            else newKey(newAccountId); // User refused, generating new private key
             break;
         }
 
@@ -325,7 +326,7 @@ void WalletMain::saveKeys()
     keyFile.close();
 }
 
-void WalletMain::newKey()
+bool WalletMain::newKey(QString& newAccountID)
 {
     using namespace ripple;
     KeyData keyData;
@@ -338,7 +339,7 @@ void WalletMain::newKey()
         if (! encryptSecretKey(keyData.secretKey, mRSAPubKey, keyData.encryptedKey))
         {
             showMessage("Error", "Error while encrypting new key, operation has been aborted", 2);
-            return;
+            return false;
         }
         keyData.secretKey.~SecretKey(); // Destroy secret key object
     }
@@ -347,7 +348,10 @@ void WalletMain::newKey()
     balances.push_back(0);
     sequences.push_back(0);
     transactions.push_back(std::vector<std::vector<QString> >());
+    newAccountID = toBase58(keyData.accountID).c_str();
     saveKeys();
+
+    return true;
 }
 
 bool WalletMain::importKey(const secure::string& keyString)
@@ -377,6 +381,8 @@ bool WalletMain::importKey(const secure::string& keyString)
     sequences.push_back(0);
     transactions.push_back(std::vector<std::vector<QString> >());
     saveKeys();
+    doReconnect();
+
     return true;
 }
 
@@ -1055,7 +1061,14 @@ void WalletMain::on_actionGenerateNew_triggered()
 {
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", "Are you sure you need another account?", QMessageBox::Yes|QMessageBox::No).exec())
     {
-        newKey();
+        QString newAccountID;
+        if (! newKey(newAccountID))
+        {
+            return;
+        }
+
+        showMessage("Success", QString("Your new account %1 has been generated and saved successfully.").arg(newAccountID), 0);
+        doReconnect();
     }
 }
 
