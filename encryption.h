@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <openssl/crypto.h>
+#include <ripple/protocol/PublicKey.h>
+#include <ripple/protocol/SecretKey.h>
 
 namespace secure
 {
@@ -41,8 +43,18 @@ namespace secure
     typedef std::vector<unsigned char, zero_after_free_allocator<unsigned char> > secret;
 }
 
-bool encryptKey(const secure::secret& keyData, const secure::string& strPassword, std::vector<unsigned char>& salt, int& nDeriveIterations, std::vector<unsigned char>& cryptedKey);
-bool decryptKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, secure::secret& decryptedKey);
+class key_error : public std::runtime_error
+{
+public:
+    explicit key_error(const std::string& str) : std::runtime_error(str) {}
+};
 
+bool generateRSAKeys(secure::string& strPrivKey, std::string& strPubKey);
+bool encryptRSAKey(const secure::string& keyData, const secure::string& strPassword, std::vector<unsigned char>& salt, int& nDeriveIterations, std::vector<unsigned char>& cryptedKey);
+bool decryptRSAKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, secure::string& decryptedKey);
+
+
+bool encryptSecretKey(const ripple::SecretKey& secret, const std::string& encryptionKey, std::vector<unsigned char>& encrypted);
+bool decryptSecretKey(const std::vector<unsigned char>& encryptedSecret, const secure::string& decryptionKey, ripple::SecretKey& secretKey);
 
 #endif // ENCRYPTION_H

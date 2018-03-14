@@ -28,8 +28,6 @@ struct KeyData {
     ripple::SecretKey secretKey;
     ripple::PublicKey publicKey;
     std::vector<unsigned char> encryptedKey;
-    std::vector<unsigned char> salt;
-    int nDeriveIterations = 0; // zero means absence of encryption
     ripple::AccountID accountID;
 };
 
@@ -78,23 +76,30 @@ private:
     QWebSocket m_webSocket;
     int nConnectAttempt = 0;
 
-    // Wallet data
-    KeyData keyData;
-
     // RPC Request ID
     int nRequestID = 1;
 
     // Fee and sequence
     int64_t nFee = 10;
     int64_t nFeeRef = 10;
-    int64_t nReserve = 2500;
-    int64_t nBalance = 0;
     int64_t nLedger = -1;
-    int64_t nSequence = 0;
-
+    int64_t nReserve = 2500;
     QString ledgerHash;
     int64_t ledgerCloseTime = 0;
     int ledgerTransactions = 0;
+
+    // Wallet data
+    int nDeriveIterations = 0;
+    std::string mRSAPubKey;
+    std::vector<unsigned char> mSalt;
+    std::vector<unsigned char> mRSACryptedkey;
+
+    int nCurrentAccount = 0;
+    std::vector<KeyData> keyStore;
+    QJsonArray accounts;
+    std::vector<int64_t> balances;
+    std::vector<int> sequences;
+    std::vector<std::vector<std::vector<QString> > > transactions;
 
     // RPC request map
     std::map<int, MessageType> reqMap;
@@ -126,6 +131,8 @@ private:
 
     // Key management
     bool loadWallet(QString& errStr);
+    bool processSingleWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg);
+    bool processMultiWallet(const QJsonObject& keyObj, QString& errorMsg);
     void saveKeys();
     void newKey();
     bool importKey(const secure::string& keyData);
@@ -142,6 +149,9 @@ private:
 
     // Add transaction to table
     void processTxMessage(QJsonObject txObj);
+
+    // Pull records from vector to data grid
+    void refreshTxView();
 
     // Process ledger info
     void processLedgerMessage(QJsonObject ledgerObj);
