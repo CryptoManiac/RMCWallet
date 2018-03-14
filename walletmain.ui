@@ -441,6 +441,7 @@
     </widget>
     <addaction name="menuKey_management"/>
     <addaction name="actionCopy_account_address"/>
+    <addaction name="actionSwitch_account"/>
     <addaction name="separator"/>
     <addaction name="actionReconnect"/>
     <addaction name="actionExit"/>
@@ -492,6 +493,11 @@
   <action name="actionAbout">
    <property name="text">
     <string>About</string>
+   </property>
+  </action>
+  <action name="actionSwitch_account">
+   <property name="text">
+    <string>Switch account</string>
    </property>
   </action>
  </widget>

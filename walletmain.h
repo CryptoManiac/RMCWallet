@@ -65,6 +65,8 @@ private Q_SLOTS:
     void txItemClicked(int nRow, int nCol);
 
 
+    void on_actionSwitch_account_triggered();
+
 private:
     // Client UI pointer
     Ui::WalletMain *ui;

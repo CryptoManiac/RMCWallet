@@ -20,6 +20,7 @@
 #include "importdialog.h"
 #include "enterpassword.h"
 #include "aboutdialog.h"
+#include "switchaccount.h"
 
 #include <ripple/protocol/AccountID.h>
 #include <ripple/protocol/PublicKey.h>
@@ -1199,6 +1200,18 @@ void WalletMain::on_actionAbout_triggered()
     aboutDlg.exec();
 }
 
+
+void WalletMain::on_actionSwitch_account_triggered()
+{
+    SwitchAccount accountDlg(NULL, accounts.toVariantList(), nCurrentAccount);
+    if (accountDlg.exec() == QDialog::Accepted)
+    {
+       nCurrentAccount = accountDlg.getSelected();
+       saveKeys();
+       doReconnect();
+    }
+}
+
 // Entry point
 
 int main(int argc, char *argv[])
@@ -1209,4 +1222,5 @@ int main(int argc, char *argv[])
 
     return a.exec();
 }
+
 

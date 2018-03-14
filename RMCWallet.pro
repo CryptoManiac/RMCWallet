@@ -102,7 +102,8 @@ SOURCES += \
     encryption.cpp \
     transactionview.cpp \
     aboutdialog.cpp \
-    txtable.cpp
+    txtable.cpp \
+    switchaccount.cpp
 
 HEADERS += walletmain.h \
     doublevalidator.h \
@@ -114,7 +115,8 @@ HEADERS += walletmain.h \
     transactionview.h \
     aboutdialog.h \
     intvalidator.h \
-    txtable.h
+    txtable.h \
+    switchaccount.h
 
 
 FORMS += walletmain.ui \
@@ -122,7 +124,8 @@ FORMS += walletmain.ui \
     importdialog.ui \
     enterpassword.ui \
     transactionview.ui \
-    aboutdialog.ui
+    aboutdialog.ui \
+    switchaccount.ui
 
 macx:ICON = RMC.icns
 win32:RC_ICONS += RMC.ico
