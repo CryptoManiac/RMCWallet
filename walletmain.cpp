@@ -704,7 +704,7 @@ void WalletMain::onTextMessageReceived(QString message)
         // Exctract and check ID against the map of previously made requests
         int nMsgId = msgObj["id"].toInt();
 
-        if (msgObj["error"].isUndefined())
+        if (!msgObj["error"].isUndefined() && !msgObj["error"].isNull())
         {
             // QString errType = msgObj["error"].toString();
             // if (errType == "actNotFound") ...
