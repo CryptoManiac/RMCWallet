@@ -209,23 +209,53 @@ bool WalletMain::convertLegacyWallet(const QJsonObject& keyObj, QString& errorMs
 {
     using namespace ripple;
 
-    KeyData keyData;
-    bool result = processSingleWalletEntry(keyObj, keyData, errorMsg);
+    if (keyObj["account_id"].isUndefined())
+    {
+        errorMsg = "Senseless wallet record found: no account ID.";
+        return false;
+    }
 
-    if (! keyData.encryptedKey.empty())
+    auto decodeResult1 = parseBase58<AccountID>(keyObj["account_id"].toString().toStdString());
+    if (! decodeResult1)
+    {
+        errorMsg = "Unable to decode your account ID, it looks like your wallet data was corrupted.";
+        return false;
+    }
+
+    if (keyObj["private_key"].isUndefined() && keyObj["encrypted_private_key"].isUndefined())
+    {
+        errorMsg = "Senseless wallet record found: no keys data for account " + keyObj["account_id"].toString();
+        return false;
+    }
+
+
+    KeyData keyData;
+    keyData.accountID = *decodeResult1;
+
+    if (! keyObj["encrypted_private_key"].isUndefined())
     {
         // Encrypted wallet
-        nDeriveIterations = keyObj["iterations"].toInt();
-        if (nDeriveIterations == 0) nDeriveIterations = 500000;
 
-        auto decodeResult1 = parseHex<std::vector<unsigned char> >(keyObj["salt"].toString().toStdString());
-        if (! decodeResult1)
+        auto decodeResult2 = parseHex<std::vector<unsigned char> >(keyObj["salt"].toString().toStdString());
+        if (! decodeResult2)
         {
             errorMsg = "Unable to decode encrypted wallet metadata";
             return false;
         }
 
-        mSalt = *decodeResult1;
+        auto decodeResult3 = parseHex<std::vector<unsigned char> >(keyObj["encrypted_private_key"].toString().toStdString());
+
+        if (! decodeResult3)
+        {
+            errorMsg = "Unable to decode encrypted key, it looks like your wallet data was corrupted.";
+            return false;
+        }
+
+        mSalt = *decodeResult2;
+        keyData.encryptedKey = *decodeResult3;
+
+        nDeriveIterations = keyObj["iterations"].toInt();
+        if (nDeriveIterations == 0) nDeriveIterations = 500000;
 
         secure::string strPassword;
 
@@ -249,6 +279,13 @@ bool WalletMain::convertLegacyWallet(const QJsonObject& keyObj, QString& errorMs
             }
         }
 
+        keyData.publicKey = derivePublicKey(keyData.secretKey);
+        if (keyData.accountID != calcAccountID(keyData.publicKey))
+        {
+            errorMsg = "Private key doesn't match your account ID, it looks like your wallet data was corrupted";
+            return false;
+        }
+
         secure::string rsaPrivKey;
         if (! generateRSAKeys(rsaPrivKey, mRSAPubKey))
         {
@@ -268,6 +305,23 @@ bool WalletMain::convertLegacyWallet(const QJsonObject& keyObj, QString& errorMs
             return false;
         }
         keyData.secretKey.~SecretKey(); // Destroy secret key object
+    }
+    else
+    {
+        // Plain wallet
+        auto decodeResult = parseHex<SecretKey>(keyObj["private_key"].toString().toStdString());
+        if (! decodeResult)
+        {
+            errorMsg = "Unable to read private key, it looks like your wallet data was corrupted";
+            return false;
+        }
+        keyData.secretKey = *decodeResult;
+        keyData.publicKey = derivePublicKey(keyData.secretKey);
+        if (keyData.accountID != calcAccountID(keyData.publicKey))
+        {
+            errorMsg = "Private key doesn't match your account ID, it looks like your wallet data was corrupted";
+            return false;
+        }
     }
 
     keyStore.push_back(keyData);
