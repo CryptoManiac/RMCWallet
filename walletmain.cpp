@@ -800,8 +800,6 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
     if (txObj["TransactionType"].toString() == "Payment" && !txObj["Amount"].isObject())
     {
         // Parse affected nodes list
-        int nAccountIndex = 0;
-        QString strCurrentAccount = "";
         for (const auto& affRecord : txMetaObj["AffectedNodes"].toArray())
         {
             QJsonObject fieldsObj;
@@ -825,30 +823,46 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
             auto it = std::find(accounts.begin(), accounts.end(), fieldsObj["Account"]);
             if (it != accounts.end())
             {
-                nAccountIndex = std::distance(accounts.begin(), it);
+                int nAccountIndex = std::distance(accounts.begin(), it);
                 balances[nAccountIndex] = fieldsObj["Balance"].toString().toDouble();
                 sequences[nAccountIndex] = fieldsObj["Sequence"].toDouble();
-                strCurrentAccount = fieldsObj["Account"].toString();
-                break;
             }
         }
 
-        if (txObj["Destination"].toString() == strCurrentAccount)
+        auto it1 = std::find(accounts.begin(), accounts.end(), txObj["Account"]);
+        auto it2 = std::find(accounts.begin(), accounts.end(), txObj["Destination"]);
+
+        if (it1 != accounts.end())
         {
-            // Add transaction record to history grid
-            bool isDebit = (txObj["Destination"].toString() != strCurrentAccount);
+            // We are sender, add debit record
             std::vector<QString> newRow {
                 QDateTime::fromTime_t(946684800 + txObj["date"].toDouble()).toString("dd/MM/yyyy hh:mm:ss"),
                 txObj["TransactionType"].toString(),
                 txObj["hash"].toString(),
-                QString("%1%2 RMC").arg(isDebit ? "-" : "").arg(QString::number ( txObj["Amount"].toString().toDouble() / 1000000, 'f', 6 )),
+                QString("-%1 RMC").arg(QString::number ( txObj["Amount"].toString().toDouble() / 1000000, 'f', 6 )),
                 QJsonDocument(txObj).toJson()
             };
 
-            auto& rowData = transactions[nAccountIndex];
+            auto& rowData = transactions[std::distance(accounts.begin(), it1)];
             rowData.insert(rowData.begin(), newRow);
-            refreshTxView();
         }
+
+        if (it2 != accounts.end())
+        {
+            // We are receiver, add credit record
+            std::vector<QString> newRow {
+                QDateTime::fromTime_t(946684800 + txObj["date"].toDouble()).toString("dd/MM/yyyy hh:mm:ss"),
+                txObj["TransactionType"].toString(),
+                txObj["hash"].toString(),
+                QString("%1 RMC").arg(QString::number ( txObj["Amount"].toString().toDouble() / 1000000, 'f', 6 )),
+                QJsonDocument(txObj).toJson()
+            };
+
+            auto& rowData = transactions[std::distance(accounts.begin(), it2)];
+            rowData.insert(rowData.begin(), newRow);
+        }
+
+        refreshTxView();
     }
     else
     {
