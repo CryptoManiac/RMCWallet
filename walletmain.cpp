@@ -425,6 +425,7 @@ bool WalletMain::newKey(QString& newAccountID)
 
     accInfoRequest();
     accTxRequest();
+    subsLedgerAndAccountRequest();
 
     return true;
 }
@@ -462,6 +463,7 @@ bool WalletMain::importKey(const secure::string& keyString)
 
     accInfoRequest();
     accTxRequest();
+    subsLedgerAndAccountRequest();
 
     return true;
 }
@@ -894,10 +896,12 @@ void WalletMain::accTxResponse(QJsonObject obj)
     QJsonArray txes = result["transactions"].toArray();
 
     // Get account ID as string.
-    QString strAccountID = ripple::toBase58(keyStore[nCurrentAccount].accountID).c_str();
+    QString strAccountID = result["account"].toString();
 
+    auto it = std::find(accounts.begin(), accounts.end(), strAccountID);
+    auto acc_idx = std::distance(accounts.begin(), it);
 
-    auto& rowData = transactions[nCurrentAccount];
+    auto& rowData = transactions[acc_idx];
     rowData.clear();
 
     for (int i = 0; i < txes.size(); i++)
@@ -986,19 +990,22 @@ void WalletMain::accInfoRequest()
 
 void WalletMain::accTxRequest()
 {
-    // Request account transactions
-    reqMap[nRequestID] = MSG_ACCOUNT_TX;
-    m_webSocket.sendTextMessage(
-        QJsonDocument(
-            QJsonObject {
-                {"id", nRequestID++},
-                {"command", "account_tx"},
-                {"account", ripple::toBase58(keyStore[nCurrentAccount].accountID).c_str() },
-                {"ledger_index_min", -1 },
-                {"ledger_index_max", -1 },
-                //{"limit", -1 },
-                {"forward", false },
-            }).toJson());
+    for (const auto& accountID : accounts)
+    {
+        // Request account transactions
+        reqMap[nRequestID] = MSG_ACCOUNT_TX;
+        m_webSocket.sendTextMessage(
+            QJsonDocument(
+                QJsonObject {
+                    {"id", nRequestID++},
+                    {"command", "account_tx"},
+                    {"account", accountID.toString() },
+                    {"ledger_index_min", -1 },
+                    {"ledger_index_max", -1 },
+                    //{"limit", -1 },
+                    {"forward", false },
+                }).toJson());
+    }
 }
 
 void WalletMain::submitRequest(QString hexBlobData)
@@ -1300,10 +1307,11 @@ void WalletMain::on_actionSwitch_account_triggered()
        nCurrentAccount = accountDlg.getSelected();
        saveKeys();
        setOnline(true, "Account switched");
+       refreshTxView();
        // doReconnect();
 
-       accInfoRequest();
-       accTxRequest();
+       //accInfoRequest();
+       //accTxRequest();
     }
 }
 
