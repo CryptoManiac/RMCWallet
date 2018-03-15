@@ -843,8 +843,12 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
                 QJsonDocument(txObj).toJson()
             };
 
-            auto& rowData = transactions[std::distance(accounts.begin(), it1)];
+            int acc_idx = std::distance(accounts.begin(), it1);
+            auto& rowData = transactions[acc_idx];
             rowData.insert(rowData.begin(), newRow);
+
+            if (nCurrentAccount == acc_idx)
+                refreshTxView();
         }
 
         if (it2 != accounts.end())
@@ -858,11 +862,14 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
                 QJsonDocument(txObj).toJson()
             };
 
-            auto& rowData = transactions[std::distance(accounts.begin(), it2)];
+            int acc_idx = std::distance(accounts.begin(), it2);
+            auto& rowData = transactions[acc_idx];
             rowData.insert(rowData.begin(), newRow);
+
+            if (nCurrentAccount == acc_idx)
+                refreshTxView();
         }
 
-        refreshTxView();
     }
     else
     {
@@ -870,7 +877,7 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
         accTxRequest();
     }
 
-    // Update current ledger index, account balance and sequence
+    // Update current ledger index
     ledgerLabel.setText("Current ledger: " + QString("%1").arg(txMsg["ledger_index"].toDouble()));
 }
 
@@ -907,7 +914,6 @@ void WalletMain::accInfoResponse(QJsonObject obj)
         sequences[acc_idx] = accountData["Sequence"].toDouble();
         balances[acc_idx] = accountData["Balance"].toString().toDouble();
     }
-
 
     setOnline(true, "Account info retrieved");
 }
@@ -947,7 +953,8 @@ void WalletMain::accTxResponse(QJsonObject obj)
         });
     }
 
-    refreshTxView();
+    if (nCurrentAccount == acc_idx)
+        refreshTxView();
 
     setOnline(true, "New transaction entry received");
 }
