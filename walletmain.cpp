@@ -800,6 +800,8 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
     if (txObj["TransactionType"].toString() == "Payment" && !txObj["Amount"].isObject())
     {
         // Parse affected nodes list
+        int nAccountIndex = 0;
+        QString strCurrentAccount = "";
         for (const auto& affRecord : txMetaObj["AffectedNodes"].toArray())
         {
             QJsonObject fieldsObj;
@@ -823,19 +825,18 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
             auto it = std::find(accounts.begin(), accounts.end(), fieldsObj["Account"]);
             if (it != accounts.end())
             {
-                auto acc_idx = std::distance(accounts.begin(), it);
-                balances[acc_idx] = fieldsObj["Balance"].toString().toDouble();
-                sequences[acc_idx] = fieldsObj["Sequence"].toDouble();
+                nAccountIndex = std::distance(accounts.begin(), it);
+                balances[nAccountIndex] = fieldsObj["Balance"].toString().toDouble();
+                sequences[nAccountIndex] = fieldsObj["Sequence"].toDouble();
+                strCurrentAccount = fieldsObj["Account"].toString();
                 break;
             }
         }
 
-        auto strCurrentAccount = ripple::toBase58(keyStore[nCurrentAccount].accountID);
-
-        if (txObj["Destination"].toString() == strCurrentAccount.c_str())
+        if (txObj["Destination"].toString() == strCurrentAccount)
         {
             // Add transaction record to history grid
-            bool isDebit = (txObj["Destination"].toString() != strCurrentAccount.c_str());
+            bool isDebit = (txObj["Destination"].toString() != strCurrentAccount);
             std::vector<QString> newRow {
                 QDateTime::fromTime_t(946684800 + txObj["date"].toDouble()).toString("dd/MM/yyyy hh:mm:ss"),
                 txObj["TransactionType"].toString(),
@@ -844,7 +845,7 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
                 QJsonDocument(txObj).toJson()
             };
 
-            auto& rowData = transactions[nCurrentAccount];
+            auto& rowData = transactions[nAccountIndex];
             rowData.insert(rowData.begin(), newRow);
             refreshTxView();
         }
