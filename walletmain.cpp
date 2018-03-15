@@ -301,7 +301,8 @@ bool WalletMain::loadWallet(QString& errorMsg)
             // Ask user to import his WIF formatted key
             if (importReq.exec() == QDialog::Accepted)
             {
-                if(!importKey(importReq.getKeyData()))
+                QString strAccountID;
+                if(!importKey(importReq.getKeyData(), strAccountID))
                     continue; // Incorrect WIF string entered, ask user again
             }
             else newKey(newAccountId); // User refused, generating new private key
@@ -430,7 +431,7 @@ bool WalletMain::newKey(QString& newAccountID)
     return true;
 }
 
-bool WalletMain::importKey(const secure::string& keyString)
+bool WalletMain::importKey(const secure::string& keyString, QString& newAccountID)
 {
     using namespace ripple;
     auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, keyString.c_str());
@@ -440,6 +441,7 @@ bool WalletMain::importKey(const secure::string& keyString)
     keyData.secretKey = *decodeResult;
     keyData.publicKey = derivePublicKey(keyData.secretKey);
     keyData.accountID = calcAccountID(keyData.publicKey);
+    newAccountID = toBase58(keyData.accountID).c_str();
 
     if (nDeriveIterations != 0)
     {
@@ -452,7 +454,12 @@ bool WalletMain::importKey(const secure::string& keyString)
         keyData.secretKey.~SecretKey(); // Destroy secret key object
     }
 
-    auto newAccountID = toBase58(keyData.accountID).c_str();
+    auto it = std::find(accounts.begin(), accounts.end(), newAccountID);
+    if (it != accounts.end())
+    {
+        showMessage("Error", "This key already exists in your wallet", 2);
+        return false;
+    }
 
     keyStore.push_back(keyData);
     accounts.push_back(newAccountID);
@@ -1137,6 +1144,7 @@ void WalletMain::on_actionImport_key_triggered()
 {
     ImportDialog importReq;
     importReq.hideNewKeyLabel();
+    QString newAccountID;
 
     while (true)
     {
@@ -1144,16 +1152,18 @@ void WalletMain::on_actionImport_key_triggered()
         auto result = importReq.exec();
         if (result == QDialog::Accepted)
         {
-            if(!importKey(importReq.getKeyData()))
+            if(!importKey(importReq.getKeyData(), newAccountID))
                 continue; // Incorrect WIF string, ask user again
             break;
         }
         else
         {
             // User refused
-            break;
+            return;
         }
     }
+
+    showMessage("Import", QString("Key import was done successfully and account %1 has been created.").arg(newAccountID), 0);
 }
 
 void WalletMain::on_actionGenerateNew_triggered()

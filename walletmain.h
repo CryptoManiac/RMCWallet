@@ -139,7 +139,7 @@ private:
     bool convertLegacyWallet(const QJsonObject& keyObj, QString& errorMsg);
     void saveKeys();
     bool newKey(QString& newAccountID);
-    bool importKey(const secure::string& keyData);
+    bool importKey(const secure::string& keyData, QString& newAccountID);
     QString exportKey(QString& errorMsg);
 
     // Ask for password
