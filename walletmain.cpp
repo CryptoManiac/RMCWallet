@@ -744,26 +744,23 @@ void WalletMain::onTextMessageReceived(QString message)
 
         try
         {
+            // Find message type
             auto msgKind = reqMap.at(nMsgId);
+
+            // Remove message ID from the map
+            reqMap.erase(nMsgId);
 
             switch(msgKind)
             {
             case MSG_ACCOUNT_INFO:
-                accInfoResponse(msgObj);
-                break;
+                return accInfoResponse(msgObj);
             case MSG_ACCOUNT_TX:
-                accTxResponse(msgObj);
-                break;
+                return accTxResponse(msgObj);
             case MSG_SUBMIT_TX:
-                submitResponse(msgObj);
-                break;
+                return submitResponse(msgObj);
             case MSG_SUBSCRIBE_LEDGER_AND_ACCOUNT:
-                subsLedgerAndAccountResponse(msgObj);
-                break;
+                return subsLedgerAndAccountResponse(msgObj);
             }
-
-            // Remove message ID from the map
-            reqMap.erase(nMsgId);
         }
         catch(std::out_of_range e)
         {
@@ -773,17 +770,13 @@ void WalletMain::onTextMessageReceived(QString message)
 
     if (msgObj.contains("type"))
     {
+        // New transaction accepted
         if (msgObj["type"] == "transaction")
-        {
-            // New transaction accepted
-            processTxMessage(msgObj);
-        }
+            return processTxMessage(msgObj);
 
+        // New ledger closed
         if (msgObj["type"] == "ledgerClosed")
-        {
-            // New ledger closed
-            processLedgerMessage(msgObj);
-        }
+            return processLedgerMessage(msgObj);
     }
 }
 
@@ -794,10 +787,7 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
 
     // Ignore unsuccessful transactions
     if (txMsg["engine_result"] != "tesSUCCESS")
-    {
-        accInfoRequest();
-        return;
-    }
+        return accInfoRequest();
 
     // Parse transaction metadata
     if (txObj["TransactionType"] == "Payment" && !txObj["Amount"].isObject())
