@@ -17,6 +17,7 @@
 #include <ripple/protocol/SecretKey.h>
 
 #include "encryption.h"
+#include "errors.h"
 
 namespace Ui {
 class WalletMain;
@@ -135,20 +136,20 @@ private:
     void subsLedgerAndAccountRequest();
 
     // Key management
-    bool loadWallet(QString& errStr);
-    bool processWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg);
-    bool processWallet(const QJsonObject& keyObj, QString& errorMsg);
-    bool convertLegacyWallet(const QJsonObject& keyObj, QString& errorMsg);
+    Error loadWallet();
+    Error processWalletEntry(const QJsonObject& keyObj, KeyData& keyData);
+    Error processWallet(const QJsonObject& keyObj);
+    Error convertLegacyWallet(const QJsonObject& keyObj);
     void saveKeys(bool fOverwrite=false);
-    bool newKey(QString& newAccountID);
-    bool importKey(const secure::string& keyData, QString& newAccountID);
-    QString exportKey(QString& errorMsg);
+    Error newKey(QString& newAccountID);
+    Error importKey(const secure::string& keyData, QString& newAccountID);
+    Error exportKey(QString& strKey);
 
     // Ask for password
-    bool askPassword(QString& errorMsg);
+    Error askPassword();
 
     // Create and sign transaction
-    bool createPaymentTx(const QString& receiverAccount, std::int64_t nAmount, std::int64_t nTransactionFee, std::int64_t nDestinationID, QString& dataJson, QString& dataHex, QString&errorMsg);
+    Error createPaymentTx(const QString& receiverAccount, std::int64_t nAmount, std::int64_t nTransactionFee, std::int64_t nDestinationID, QString& dataJson, QString& dataHex);
 
     // Adjust element layout
     void setupControls(QWidget *parent);

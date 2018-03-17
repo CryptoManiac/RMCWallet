@@ -103,7 +103,8 @@ SOURCES += \
     transactionview.cpp \
     aboutdialog.cpp \
     txtable.cpp \
-    switchaccount.cpp
+    switchaccount.cpp \
+    errors.cpp
 
 HEADERS += walletmain.h \
     doublevalidator.h \
@@ -116,7 +117,8 @@ HEADERS += walletmain.h \
     aboutdialog.h \
     intvalidator.h \
     txtable.h \
-    switchaccount.h
+    switchaccount.h \
+    errors.h
 
 
 FORMS += walletmain.ui \
