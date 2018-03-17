@@ -139,7 +139,7 @@ private:
     bool processSingleWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg);
     bool processMultiWallet(const QJsonObject& keyObj, QString& errorMsg);
     bool convertLegacyWallet(const QJsonObject& keyObj, QString& errorMsg);
-    void saveKeys();
+    void saveKeys(bool fOverwrite=false);
     bool newKey(QString& newAccountID);
     bool importKey(const secure::string& keyData, QString& newAccountID);
     QString exportKey(QString& errorMsg);

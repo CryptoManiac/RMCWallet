@@ -422,7 +422,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
     return false;
 }
 
-void WalletMain::saveKeys()
+void WalletMain::saveKeys(bool fOverwrite)
 {
     using namespace ripple;
 
@@ -463,6 +463,17 @@ void WalletMain::saveKeys()
 
     QFile keyFile;
     keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
+
+    if (fOverwrite)
+    {
+        // Overwrite old file contents with zeros
+        keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
+        QByteArray arrZeros(keyFile.size(), '0');
+        keyFile.write(arrZeros, arrZeros.size());
+        keyFile.flush();
+        keyFile.close();
+    }
+
     keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
     keyFile.write(walletDoc, walletDoc.size());
     keyFile.close();
@@ -1332,8 +1343,6 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
             return;
         }
 
-        QJsonArray encJsonArray;
-
         for(auto &keyData : keyStore)
         {
             if (keyData.encryptedKey.size() == 0)
@@ -1345,40 +1354,9 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
                 }
                 keyData.secretKey.~SecretKey(); // Destroy secret key object
             }
-
-            encJsonArray.push_back(QJsonObject
-            {
-                { "encrypted_private_key", strHex(keyData.encryptedKey.begin(), keyData.encryptedKey.size()).c_str() },
-                { "public_key", strHex(keyData.publicKey.data(), keyData.publicKey.size()).c_str() },
-                { "account_id", toBase58(keyData.accountID).c_str() },
-            });
         }
 
-        auto keyJSONData = QJsonDocument (QJsonObject {
-            { "main_account", nCurrentAccount },
-            { "encryption" , QJsonObject {
-                { "master_public_key", mRSAPubKey.c_str() },
-                { "encrypted_master_private_key", strHex(mRSACryptedkey.data(), mRSACryptedkey.size()).c_str() },
-                { "salt", strHex(mSalt.data(), mSalt.size()).c_str() },
-                { "iterations", nDeriveIterations }
-            } },
-            { "accounts", encJsonArray}
-        }).toJson();
-
-        QFile keyFile;
-        keyFile.setFileName(QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QDir::separator() + "keyStore.json");
-        keyFile.open(QIODevice::ReadWrite | QIODevice::Text);
-
-        // Overwrite old file contents with zeros
-        QByteArray arrZeros(keyFile.size(), '0');
-        keyFile.write(arrZeros, arrZeros.size());
-        keyFile.flush();
-        keyFile.close();
-
-        // Write encrypted data
-        keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
-        keyFile.write(keyJSONData, keyJSONData.size());
-        keyFile.close();
+        saveKeys(true);
 
         showMessage("Information", "Your wallet file was successfully encrypted.", 0);
     }
