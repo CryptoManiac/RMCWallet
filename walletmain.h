@@ -31,6 +31,8 @@ struct KeyData {
     ripple::AccountID accountID;
 };
 
+typedef std::vector<std::vector<QString> > TxVector;
+
 class WalletMain : public QMainWindow
 {
     Q_OBJECT
@@ -102,7 +104,7 @@ private:
     QJsonArray accounts;
     std::vector<int64_t> balances;
     std::vector<int> sequences;
-    std::vector<std::vector<std::vector<QString> > > transactions;
+    std::vector<TxVector> transactions;
 
     // RPC request map
     std::map<int, MessageType> reqMap;

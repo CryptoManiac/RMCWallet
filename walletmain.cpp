@@ -48,6 +48,22 @@ static void showMessage(const QString& strCaption, const QString& strMessage, in
     messageBox.setFixedSize(500, 200);
 }
 
+inline static QString timeFormat(int64_t nTime)
+{
+    return QDateTime::fromTime_t(946684800 + nTime).toString("dd/MM/yyyy hh:mm:ss");
+}
+
+inline static QString AmountWithSign(int64_t nAmount, bool isDebit = false, QString strCurrency = "RMC")
+{
+    return QString("%1%2 %3").arg(isDebit ? "-" : "").arg(QString::number ( nAmount / 1000000.0, 'f', 6 )).arg(strCurrency);
+}
+
+inline static QString Amount(int64_t nAmount)
+{
+    return QString::number ( nAmount / 1000000.0, 'f', 6 );
+}
+
+
 //------------------------------------------------------------------------------
 
 bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nAmount, std::int64_t nTransactionFee, std::int64_t nDestinationID, QString& dataJson, QString& dataHex, QString& errorMsg)
@@ -181,6 +197,7 @@ bool WalletMain::processSingleWalletEntry(const QJsonObject& keyObj, KeyData& ke
 
 bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg)
 {
+    using namespace ripple;
     const auto& accs = keyObj["accounts"];
 
     if (!accs.isArray())
@@ -200,7 +217,7 @@ bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg
 
     balances = std::vector<int64_t>(accs.toArray().size(), 0);
     sequences = std::vector<int>(accs.toArray().size(), 0);
-    transactions = std::vector<std::vector<std::vector<QString> > >(accs.toArray().size(), std::vector<std::vector<QString> >());
+    transactions = std::vector<TxVector>(accs.toArray().size(), TxVector());
 
     return true;
 }
@@ -328,7 +345,7 @@ bool WalletMain::convertLegacyWallet(const QJsonObject& keyObj, QString& errorMs
     accounts.push_back(toBase58(keyData.accountID).c_str());
     balances.push_back(0);
     sequences.push_back(0);
-    transactions.push_back(std::vector<std::vector<QString> >());
+    transactions.push_back(TxVector());
     nCurrentAccount = 0;
 
     saveKeys();
@@ -475,7 +492,7 @@ bool WalletMain::newKey(QString& newAccountID)
     accounts.push_back(newAccountID);
     balances.push_back(0);
     sequences.push_back(0);
-    transactions.push_back(std::vector<std::vector<QString> >());
+    transactions.push_back(TxVector());
     saveKeys();
 
     accInfoRequest();
@@ -519,7 +536,7 @@ bool WalletMain::importKey(const secure::string& keyString, QString& newAccountI
     accounts.push_back(newAccountID);
     balances.push_back(0);
     sequences.push_back(0);
-    transactions.push_back(std::vector<std::vector<QString> >());
+    transactions.push_back(TxVector());
     saveKeys();
 
     accInfoRequest();
@@ -655,17 +672,17 @@ void WalletMain::setOnline(bool flag, const QString& reason)
     ui->tabWidget->setTabEnabled(1, flag);
     ui->tabWidget->setTabEnabled(2, flag);
 
-    balanceLabel.setText(QString("Balance: %1 RMC").arg(QString::number(balances[nCurrentAccount] / 1000000.0, 'f', 6)));
+    balanceLabel.setText(QString("Balance: %1").arg(AmountWithSign(balances[nCurrentAccount])));
     ledgerLabel.setText(QString("Current ledger: %1").arg(nLedger));
 
     ui->latestLedgerHash->setText(ledgerHash);
     ui->latestLedgerNum->setText(QString("%1").arg(nLedger));
     ui->transactionsCount->setText(QString("%1").arg(ledgerTransactions));
-    ui->closeTime->setText(QDateTime::fromTime_t(946684800 + ledgerCloseTime).toString("dd/MM/yyyy hh:mm:ss"));
-    ui->baseFeeValue->setText(QString("%1").arg(QString::number(nFee / 1000000.0, 'f', 6) + " RMC"));
-    ui->feeRefValue->setText(QString("%1").arg(QString::number(nFeeRef / 1000000.0, 'f', 6) + " RMC"));
-    ui->baseReserveValue->setText(QString("%1").arg(QString::number(nReserve / 1000000.0, 'f', 6) + " RMC"));
-    ui->sendTransactionFeeValue->setPlaceholderText(QString("%1").arg(QString::number(nFeeRef / 1000000.0, 'f', 6)));
+    ui->closeTime->setText(timeFormat(ledgerCloseTime));
+    ui->baseFeeValue->setText(AmountWithSign(nFee));
+    ui->feeRefValue->setText(AmountWithSign(nFeeRef));
+    ui->baseReserveValue->setText(AmountWithSign(nReserve));
+    ui->sendTransactionFeeValue->setPlaceholderText(Amount(nFeeRef));
 }
 
 void WalletMain::setupControls(QWidget *parent)
@@ -889,17 +906,15 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
         if (it1 != accounts.end())
         {
             // We are sender, add debit record
-            std::vector<QString> newRow {
-                QDateTime::fromTime_t(946684800 + txObj["date"].toDouble()).toString("dd/MM/yyyy hh:mm:ss"),
-                txObj["TransactionType"].toString(),
-                txObj["hash"].toString(),
-                QString("-%1 RMC").arg(QString::number ( txObj["Amount"].toString().toDouble() / 1000000, 'f', 6 )),
-                QJsonDocument(txObj).toJson()
-            };
-
             int acc_idx = std::distance(accounts.begin(), it1);
             auto& rowData = transactions[acc_idx];
-            rowData.insert(rowData.begin(), newRow);
+            rowData.insert(rowData.begin(), {
+                timeFormat(txObj["date"].toInt()),
+                txObj["TransactionType"].toString(),
+                txObj["hash"].toString(),
+                AmountWithSign(txObj["Amount"].toString().toDouble(), true),
+                QJsonDocument(txObj).toJson()
+            });
 
             if (nCurrentAccount == acc_idx)
                 refreshTxView();
@@ -908,17 +923,15 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
         if (it2 != accounts.end())
         {
             // We are receiver, add credit record
-            std::vector<QString> newRow {
-                QDateTime::fromTime_t(946684800 + txObj["date"].toDouble()).toString("dd/MM/yyyy hh:mm:ss"),
-                txObj["TransactionType"].toString(),
-                txObj["hash"].toString(),
-                QString("%1 RMC").arg(QString::number ( txObj["Amount"].toString().toDouble() / 1000000, 'f', 6 )),
-                QJsonDocument(txObj).toJson()
-            };
-
             int acc_idx = std::distance(accounts.begin(), it2);
             auto& rowData = transactions[acc_idx];
-            rowData.insert(rowData.begin(), newRow);
+            rowData.insert(rowData.begin(), {
+                timeFormat(txObj["date"].toInt()),
+                txObj["TransactionType"].toString(),
+                txObj["hash"].toString(),
+                AmountWithSign(txObj["Amount"].toString().toDouble()),
+                QJsonDocument(txObj).toJson()
+            });
 
             if (nCurrentAccount == acc_idx)
                 refreshTxView();
@@ -943,7 +956,7 @@ void WalletMain::processLedgerMessage(QJsonObject ledgerObj)
     nReserve = ledgerObj["reserve_base"].toDouble();
     ledgerHash = ledgerObj["ledger_hash"].toString();
     ledgerCloseTime = ledgerObj["ledger_time"].toDouble();
-    ledgerTransactions = ledgerObj["txn_count"].toDouble();
+    ledgerTransactions = ledgerObj["txn_count"].toInt();
     setOnline(true, QString("ledger %1 closed").arg(ledgerHash.left(6)));
 }
 
@@ -999,10 +1012,10 @@ void WalletMain::accTxResponse(QJsonObject obj)
         bool isDebit = (txObj["Destination"].toString() != strAccountID);
 
         rowData.insert(rowData.end(), std::vector<QString> {
-            QDateTime::fromTime_t(946684800 + txObj["date"].toDouble()).toString("dd/MM/yyyy hh:mm:ss"),
+            timeFormat(txObj["date"].toDouble()),
             txObj["TransactionType"].toString(),
             txObj["hash"].toString(),
-            QString("%1%2 RMC").arg(isDebit ? "-" : "").arg(QString::number ( txObj["Amount"].toString().toDouble() / 1000000, 'f', 6 )),
+            AmountWithSign(txObj["Amount"].toString().toDouble(), isDebit),
             QJsonDocument(txObj).toJson()
         });
     }
