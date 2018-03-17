@@ -666,9 +666,9 @@ void WalletMain::onConnectionError(QAbstractSocket::SocketError error)
 
 void WalletMain::setOnline(bool flag, const QString& reason)
 {
-    const auto& keyData = keyStore[nCurrentAccount];
+    using namespace ripple;
 
-    QString strAccountID = ripple::toBase58(keyData.accountID).c_str();
+    QString strAccountID = toBase58(keyStore[nCurrentAccount].accountID).c_str();
     this->setWindowTitle(QString("RMC Wallet [%1%2]").arg(strAccountID).arg(flag ? "" : ", offline"));
     networkStatusLabel.setText(QString("Network status: %1").arg(reason));
 
@@ -750,6 +750,8 @@ bool WalletMain::isNetworkAvailable()
 
 void WalletMain::socketConnect()
 {
+    using namespace std;
+
     if (! isNetworkAvailable()) {
         setOnline(false, "No internet connection");
         nConnectAttempt = 4;
@@ -757,10 +759,10 @@ void WalletMain::socketConnect()
     }
 
     // Connect to random RPC server
-    std::vector<QString> servers = {"wss://connor.rmc.one:443/", "wss://kirk.rmc.one:443/", "wss://forrest.rmc.one:443/", "wss://archer.rmc.one:443/", "wss://lorca.rmc.one:443/"};
-    std::random_device random_device;
-    std::mt19937 engine{random_device()};
-    std::uniform_int_distribution<int> dist(0, servers.size() - 1);
+    vector<QString> servers = {"wss://connor.rmc.one:443/", "wss://kirk.rmc.one:443/", "wss://forrest.rmc.one:443/", "wss://archer.rmc.one:443/", "wss://lorca.rmc.one:443/"};
+    random_device random_device;
+    mt19937 engine{random_device()};
+    uniform_int_distribution<int> dist(0, servers.size() - 1);
     m_webSocket.open(QUrl(servers[dist(engine)]));
 }
 
@@ -852,13 +854,13 @@ void WalletMain::onTextMessageReceived(QString message)
 
     if (msgObj.contains("type"))
     {
-        if (msgObj["type"].toString() == "transaction")
+        if (msgObj["type"] == "transaction")
         {
             // New transaction accepted
             processTxMessage(msgObj);
         }
 
-        if (msgObj["type"].toString() == "ledgerClosed")
+        if (msgObj["type"] == "ledgerClosed")
         {
             // New ledger closed
             processLedgerMessage(msgObj);
@@ -872,14 +874,14 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
     auto txObj = txMsg["transaction"].toObject();
 
     // Ignore unsuccessful transactions
-    if (txMsg["engine_result"].toString() != "tesSUCCESS")
+    if (txMsg["engine_result"] != "tesSUCCESS")
     {
         accInfoRequest();
         return;
     }
 
     // Parse transaction metadata
-    if (txObj["TransactionType"].toString() == "Payment" && !txObj["Amount"].isObject())
+    if (txObj["TransactionType"] == "Payment" && !txObj["Amount"].isObject())
     {
         // Parse affected nodes list
         for (const auto& affRecord : txMetaObj["AffectedNodes"].toArray())
@@ -890,14 +892,14 @@ void WalletMain::processTxMessage(QJsonObject txMsg)
             if (affRecord.toObject()["CreatedNode"].isObject())
             {
                 auto nodeObj = affRecord.toObject()["CreatedNode"].toObject();
-                if (nodeObj["LedgerEntryType"].toString() == "AccountRoot") {
+                if (nodeObj["LedgerEntryType"] == "AccountRoot") {
                     fieldsObj = nodeObj["NewFields"].toObject();
                 } else continue;
             }
             else
             {
                 auto nodeObj = affRecord.toObject()["ModifiedNode"].toObject();
-                if (nodeObj["LedgerEntryType"].toString() == "AccountRoot") {
+                if (nodeObj["LedgerEntryType"] == "AccountRoot") {
                     fieldsObj = nodeObj["FinalFields"].toObject();
                 } else continue;
             }
@@ -974,6 +976,8 @@ void WalletMain::processLedgerMessage(QJsonObject ledgerObj)
 
 void WalletMain::txItemClicked(int nRow, int nCol)
 {
+    Q_UNUSED(nCol);
+
     QTableWidgetItem *item = new QTableWidgetItem;
     item = ui->txView->item(nRow, 4);
     TransactionView txDlg(nullptr, item->text());
@@ -1059,7 +1063,7 @@ void WalletMain::submitResponse(QJsonObject obj)
 {
     QJsonObject result = obj["result"].toObject();
 
-    if (result["status"].toString() == "error")
+    if (result["status"] == "error")
         showMessage(QString("Transaction error"), QString("Failure while committing transaction to the RMC network: ") + obj["error_message"].toString(), 1);
     else if (result["engine_result"].toString() != "tesSUCCESS")
         showMessage(QString("Transaction error"), QString("Error while processing transaction by the RMC network: ") + result["engine_result_message"].toString(), 1);
@@ -1235,8 +1239,8 @@ void WalletMain::on_sendButton_clicked()
         ui->sendButton->setEnabled(false);
         ui->previewButton->setEnabled(false);
         ui->receiverAddressEdit->setText("");
-        ui->amountToSend->setText("0");
-        ui->destinationTag->setText("0");
+        ui->amountToSend->setText("");
+        ui->destinationTag->setText("");
     }
 }
 
@@ -1271,13 +1275,11 @@ void WalletMain::on_actionGenerateNew_triggered()
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", "Are you sure you need another account?", QMessageBox::Yes|QMessageBox::No).exec())
     {
         QString newAccountID;
-        if (! newKey(newAccountID))
+        if (newKey(newAccountID))
         {
-            return;
+            showMessage("Success", QString("Your new account %1 has been generated and saved successfully.").arg(newAccountID), 0);
+            doReconnect();
         }
-
-        showMessage("Success", QString("Your new account %1 has been generated and saved successfully.").arg(newAccountID), 0);
-        doReconnect();
     }
 }
 
@@ -1326,7 +1328,7 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
 
         if (strPassword1 != strPassword2)
         {
-            showMessage("Error", "Entered passwords do not match.", 2);
+            showMessage("Error", "Entered passwords do not match.", 1);
             return;
         }
 
