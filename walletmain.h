@@ -136,8 +136,8 @@ private:
 
     // Key management
     bool loadWallet(QString& errStr);
-    bool processSingleWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg);
-    bool processMultiWallet(const QJsonObject& keyObj, QString& errorMsg);
+    bool processWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg);
+    bool processWallet(const QJsonObject& keyObj, QString& errorMsg);
     bool convertLegacyWallet(const QJsonObject& keyObj, QString& errorMsg);
     void saveKeys(bool fOverwrite=false);
     bool newKey(QString& newAccountID);
@@ -161,6 +161,9 @@ private:
 
     // Process ledger info
     void processLedgerMessage(QJsonObject ledgerObj);
+
+    // Create and send payment
+    void sendPayment(bool fJustAsk=true);
 };
 
 #endif // WALLETMAIN_H

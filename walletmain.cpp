@@ -63,6 +63,15 @@ inline static QString Amount(int64_t nAmount)
     return QString::number ( nAmount / 1000000.0, 'f', 6 );
 }
 
+inline static int64_t readInt(QLineEdit* lineEdit)
+{
+    return QLocale::system().toInt(lineEdit->text());
+}
+
+inline static double readDouble(QLineEdit* lineEdit)
+{
+    return QLocale::system().toDouble(lineEdit->text());
+}
 
 //------------------------------------------------------------------------------
 
@@ -126,7 +135,7 @@ bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nA
     return true;
 }
 
-bool WalletMain::processSingleWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg)
+bool WalletMain::processWalletEntry(const QJsonObject& keyObj, KeyData& keyData, QString& errorMsg)
 {
     using namespace ripple;
 
@@ -195,7 +204,7 @@ bool WalletMain::processSingleWalletEntry(const QJsonObject& keyObj, KeyData& ke
     }
 }
 
-bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg)
+bool WalletMain::processWallet(const QJsonObject& keyObj, QString& errorMsg)
 {
     using namespace ripple;
     const auto& accs = keyObj["accounts"];
@@ -210,7 +219,7 @@ bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg
     for (const auto& account : accs.toArray())
     {
         KeyData keyData;
-        if (! processSingleWalletEntry(account.toObject(), keyData, errorMsg))
+        if (! processWalletEntry(account.toObject(), keyData, errorMsg))
             return false;
         keyStore.push_back(keyData);
         accounts.push_back(toBase58(keyData.accountID).c_str());
@@ -410,7 +419,7 @@ bool WalletMain::loadWallet(QString& errorMsg)
         {
             // Multi wallet mode
             nCurrentAccount = keyObj["main_account"].toDouble();
-            return processMultiWallet(keyObj, errorMsg);
+            return processWallet(keyObj, errorMsg);
         }
         else
         {
@@ -671,7 +680,6 @@ void WalletMain::setOnline(bool flag, const QString& reason)
 
     QString strAccountID = toBase58(keyStore[nCurrentAccount].accountID).c_str();
     this->setWindowTitle(QString("RMC Wallet [%1%2]").arg(strAccountID).arg(flag ? "" : ", offline"));
-    networkStatusLabel.setText(QString("Network status: %1").arg(reason));
 
     // Select default tab
     if (! flag) ui->tabWidget->setCurrentIndex(0);
@@ -679,14 +687,19 @@ void WalletMain::setOnline(bool flag, const QString& reason)
     if (! flag) nLedger = -1;
     if (flag) nConnectAttempt = 0;
 
+    // Send form and tab widget headers
     ui->sendButton->setEnabled(flag);
     ui->previewButton->setEnabled(flag);
     ui->tabWidget->setTabEnabled(1, flag);
     ui->tabWidget->setTabEnabled(2, flag);
+    ui->sendTransactionFeeValue->setPlaceholderText(Amount(nFeeRef));
 
+    // Statusbar labels
     balanceLabel.setText(QString("Balance: %1").arg(AmountWithSign(balances[nCurrentAccount])));
     ledgerLabel.setText(QString("Current ledger: %1").arg(nLedger));
+    networkStatusLabel.setText(QString("Network status: %1").arg(reason));
 
+    // Network info tab
     ui->latestLedgerHash->setText(ledgerHash);
     ui->latestLedgerNum->setText(QString("%1").arg(nLedger));
     ui->transactionsCount->setText(QString("%1").arg(ledgerTransactions));
@@ -694,7 +707,6 @@ void WalletMain::setOnline(bool flag, const QString& reason)
     ui->baseFeeValue->setText(AmountWithSign(nFee));
     ui->feeRefValue->setText(AmountWithSign(nFeeRef));
     ui->baseReserveValue->setText(AmountWithSign(nReserve));
-    ui->sendTransactionFeeValue->setPlaceholderText(Amount(nFeeRef));
 }
 
 void WalletMain::setupControls(QWidget *parent)
@@ -718,18 +730,16 @@ void WalletMain::setupControls(QWidget *parent)
     // Set column sizes
     for(auto nCol : {0, 1, 3})
         ui->txView->setColumnWidth(nCol, 150);
+    // Add statusBar labels
+    for (auto pW : {&balanceLabel, &ledgerLabel, &networkStatusLabel})
+        ui->statusBar->addWidget(pW);
 
     ui->txView->verticalHeader()->setVisible(false);
     ui->txView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->txView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    ui->actionEncrypt_wallet->setDisabled(keyStore[nCurrentAccount].encryptedKey.size() != 0);
 
     connect(ui->txView, SIGNAL(cellDoubleClicked(int,int)), this, SLOT(txItemClicked(int,int)));
-
-    // Add statusBar labels
-    ui->statusBar->addWidget(&balanceLabel);
-    ui->statusBar->addWidget(&ledgerLabel);
-    ui->statusBar->addWidget(&networkStatusLabel);
-    ui->actionEncrypt_wallet->setDisabled(keyStore[nCurrentAccount].encryptedKey.size() != 0);
 }
 
 WalletMain::~WalletMain()
@@ -1147,6 +1157,72 @@ void WalletMain::subsLedgerAndAccountRequest()
         }).toJson());
 }
 
+void WalletMain::sendPayment(bool fJustAsk)
+{
+    auto& keyData = keyStore[nCurrentAccount];
+
+    if (ui->receiverAddressEdit->text() == ripple::toBase58(keyData.accountID).c_str() )
+    {
+        showMessage(QString("Error"), QString("Sending to self basically has no sense and is not supported."), 1);
+        return;
+    }
+
+    QString txHex, txJSON, strErr;
+    QString strReceiver = ui->receiverAddressEdit->text();
+    int64_t nAmount = readDouble(ui->amountToSend) * 1000000;
+    int64_t nTagID = readInt(ui->destinationTag);
+    int64_t nTxFee = readDouble(ui->sendTransactionFeeValue) * 1000000;
+    if (nTxFee == 0) nTxFee = nFeeRef;
+
+    if (nAmount > (balances[nCurrentAccount] - nTxFee - nReserve))
+    {
+        showMessage(QString("Warning"), QString("Transaction amount is greater than amount of available funds. This could happen if your available balance doesn't comply with either fee or reserve requirements."), 1);
+        return;
+    }
+
+    bool result = createPaymentTx(strReceiver, nAmount, nTxFee, nTagID, txJSON, txHex, strErr);
+    if (result)
+    {
+        int expected = 0;
+        QDialog* interaction = nullptr;
+
+        if (fJustAsk)
+        {
+            QString strConf = "I'm about to send " + ui->amountToSend->text()
+                    + " RMC to " + ui->receiverAddressEdit->text() + ". Do you agree?";
+
+            expected = QMessageBox::Yes;
+            interaction = new QMessageBox(QMessageBox::Information, "Confirmation", strConf, QMessageBox::Yes | QMessageBox::No);
+        }
+        else
+        {
+            expected = QDialog::Accepted;
+            interaction = new TransactionPreview(nullptr, txJSON, txHex);
+        }
+
+        auto choice = interaction->exec();
+        delete interaction;
+
+        if (choice == expected)
+        {
+            // Submit transaction and disable send button till confirmation from server
+            submitRequest(txHex);
+            ui->sendButton->setEnabled(false);
+            ui->previewButton->setEnabled(false);
+            ui->receiverAddressEdit->setText("");
+            ui->amountToSend->setText("");
+            ui->destinationTag->setText("");
+        }
+
+        return;
+    }
+
+    if (strErr != "Password")
+        showMessage(QString("Error"), strErr, 1);
+}
+
+// Interface handlers
+
 void WalletMain::on_actionExit_triggered()
 {
     qApp->quit();
@@ -1161,88 +1237,12 @@ void WalletMain::on_clearButton_clicked()
 
 void WalletMain::on_previewButton_clicked()
 {
-    auto& keyData = keyStore[nCurrentAccount];
-
-    if (ui->receiverAddressEdit->text() == ripple::toBase58(keyData.accountID).c_str() )
-    {
-        showMessage(QString("Error"), QString("Sending to self basically has no sense and is not supported."), 1);
-        return;
-    }
-
-    QString transactionHex, transactionJSON, strError;
-    int64_t nAmount = QLocale::system().toDouble(ui->amountToSend->text()) * 1000000;
-    int64_t nDestinationID = QLocale::system().toInt(ui->destinationTag->text());
-    int64_t nTransactionFee = (QLocale::system().toDouble(ui->sendTransactionFeeValue->text()) * 1000000);
-    if (nTransactionFee == 0) nTransactionFee = nFeeRef;
-
-    if (nAmount > (balances[nCurrentAccount] - nTransactionFee - nReserve))
-    {
-        showMessage(QString("Warning"), QString("Transaction amount is greater than amount of available funds. This could happen if your available balance doesn't comply with either fee or reserve requirements."), 1);
-        return;
-    }
-
-    bool result = createPaymentTx(
-                ui->receiverAddressEdit->text(), nAmount, nTransactionFee, nDestinationID,
-                    transactionJSON, transactionHex, strError);
-    if (! result)
-    {
-        if (strError != "Password") showMessage(QString("Error"), strError, 1);
-    }
-    else
-    {
-        TransactionPreview preview(nullptr, transactionJSON, transactionHex);
-        if (preview.exec() == QDialog::Accepted)
-        {
-            // Submit transaction and disable send button till confirmation from server
-            submitRequest(transactionHex);
-            ui->sendButton->setEnabled(false);
-            ui->previewButton->setEnabled(false);
-            ui->receiverAddressEdit->setText("");
-            ui->amountToSend->setText("");
-            ui->destinationTag->setText("");
-        }
-    }
+    sendPayment(false);
 }
 
 void WalletMain::on_sendButton_clicked()
 {
-    auto& keyData = keyStore[nCurrentAccount];
-
-    if (ui->receiverAddressEdit->text() == ripple::toBase58(keyData.accountID).c_str())
-    {
-        showMessage(QString("Error"), QString("Sending to self basically has no sense and is not supported."), 1);
-        return;
-    }
-
-    QString transactionHex, transactionJSON, strError;
-    int64_t nAmount = QLocale::system().toDouble(ui->amountToSend->text()) * 1000000;
-    int64_t nDestinationID = QLocale::system().toInt(ui->destinationTag->text());
-    int64_t nTransactionFee = (QLocale::system().toDouble(ui->sendTransactionFeeValue->text()) * 1000000);
-    if (nTransactionFee == 0) nTransactionFee = nFeeRef;
-
-    if (nAmount > (balances[nCurrentAccount] - nTransactionFee - nReserve))
-    {
-        showMessage(QString("Warning"), QString("Transaction amount is greater than amount of available funds. This coud happen if your available balance doesn't comply with either fee or reserve requirements."), 1);
-        return;
-    }
-
-    QString sendMessage = "I'm about to send " + ui->amountToSend->text() + " RMC to " + ui->receiverAddressEdit->text() + ". Do you agree?";
-
-    bool result = createPaymentTx(
-                ui->receiverAddressEdit->text(), nAmount, nTransactionFee, nDestinationID, transactionJSON, transactionHex, strError);
-    if (! result ) {
-        if (strError != "Password") showMessage(QString("Error"), strError, 1);
-    }
-    else if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", sendMessage, QMessageBox::Yes|QMessageBox::No).exec())
-    {
-        // Submit transaction and disable send button till confirmation from server
-        submitRequest(transactionHex);
-        ui->sendButton->setEnabled(false);
-        ui->previewButton->setEnabled(false);
-        ui->receiverAddressEdit->setText("");
-        ui->amountToSend->setText("");
-        ui->destinationTag->setText("");
-    }
+    sendPayment(true);
 }
 
 void WalletMain::on_actionImport_key_triggered()
