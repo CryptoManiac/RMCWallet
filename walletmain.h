@@ -129,8 +129,8 @@ private:
     void subsLedgerAndAccountResponse(QJsonObject obj);
 
     // Request handlers
-    void accInfoRequest();
-    void accTxRequest();
+    void accInfoRequest(QJsonArray accs = {});
+    void accTxRequest(QJsonArray accs = {});
     void submitRequest(QString hexBlobData);
     void subsLedgerAndAccountRequest();
 

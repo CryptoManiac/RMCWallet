@@ -36,6 +36,8 @@
 #include <random>
 #include <tuple>
 
+// Helpers
+
 static void showMessage(const QString& strCaption, const QString& strMessage, int nType)
 {
     QMessageBox messageBox;
@@ -73,7 +75,7 @@ inline static double readDouble(QLineEdit* lineEdit)
     return QLocale::system().toDouble(lineEdit->text());
 }
 
-//------------------------------------------------------------------------------
+// Core routines
 
 bool WalletMain::createPaymentTx(const QString& receiverAccount, std::int64_t nAmount, std::int64_t nTransactionFee, std::int64_t nDestinationID, QString& dataJson, QString& dataHex, QString& errorMsg)
 {
@@ -289,21 +291,16 @@ bool WalletMain::convertLegacyWallet(const QJsonObject& keyObj, QString& errorMs
         while (true)
         {
             EnterPassword pwDialog(this);
-            if (pwDialog.exec() == QDialog::Accepted) {
-                bool fOk = true;
-                strPassword = pwDialog.getPassword();
-                if (fOk) fOk = legacyDecryptKey(keyData.encryptedKey, strPassword, mSalt, nDeriveIterations, keyData.secretKey);
-                if (fOk) break;
-
-                // Wrong password, try again
-                continue;
-            }
-            else
+            if (pwDialog.exec() != QDialog::Accepted)
             {
-                // User refused to enter the password
                 errorMsg = "Password";
-                return false;
+                return false; // User refused to enter the password
             }
+            bool fOk = true;
+            strPassword = pwDialog.getPassword();
+            if (fOk) fOk = legacyDecryptKey(keyData.encryptedKey, strPassword, mSalt, nDeriveIterations, keyData.secretKey);
+            if (fOk) break;
+            continue; // Wrong password, try again
         }
 
         keyData.publicKey = derivePublicKey(keyData.secretKey);
@@ -376,17 +373,16 @@ bool WalletMain::loadWallet(QString& errorMsg)
     {
         // Brand new wallet
         ImportDialog importReq;
-        QString newAccountId;
+        QString strAccountID;
         while (true)
         {
             // Ask user to import his WIF formatted key
             if (importReq.exec() == QDialog::Accepted)
             {
-                QString strAccountID;
                 if(!importKey(importReq.getKeyData(), strAccountID))
                     continue; // Incorrect WIF string entered, ask user again
             }
-            else newKey(newAccountId); // User refused, generating new private key
+            else newKey(strAccountID); // User refused, generating new private key
             break;
         }
 
@@ -516,8 +512,8 @@ bool WalletMain::newKey(QString& newAccountID)
     transactions.push_back(TxVector());
     saveKeys();
 
-    accInfoRequest();
-    accTxRequest();
+    accInfoRequest({ newAccountID });
+    accTxRequest({ newAccountID });
     subsLedgerAndAccountRequest();
 
     return true;
@@ -560,8 +556,8 @@ bool WalletMain::importKey(const secure::string& keyString, QString& newAccountI
     transactions.push_back(TxVector());
     saveKeys();
 
-    accInfoRequest();
-    accTxRequest();
+    accInfoRequest({ newAccountID });
+    accTxRequest({ newAccountID });
     subsLedgerAndAccountRequest();
 
     return true;
@@ -984,17 +980,6 @@ void WalletMain::processLedgerMessage(QJsonObject ledgerObj)
     setOnline(true, QString("ledger %1 closed").arg(ledgerHash.left(6)));
 }
 
-
-void WalletMain::txItemClicked(int nRow, int nCol)
-{
-    Q_UNUSED(nCol);
-
-    QTableWidgetItem *item = new QTableWidgetItem;
-    item = ui->txView->item(nRow, 4);
-    TransactionView txDlg(nullptr, item->text());
-    txDlg.exec();
-}
-
 void WalletMain::accInfoResponse(QJsonObject obj)
 {
     auto result = obj["result"].toObject();
@@ -1094,9 +1079,9 @@ void WalletMain::subsLedgerAndAccountResponse(QJsonObject obj)
     setOnline(true, "Subscribed to ledger and account notifications");
 }
 
-void WalletMain::accInfoRequest()
+void WalletMain::accInfoRequest(QJsonArray accs)
 {
-    for (const auto& accountID : accounts)
+    for (const auto& accountID : (accs.size() > 0 ? accs : accounts))
     {
         // Request account info
         reqMap[nRequestID] = MSG_ACCOUNT_INFO;
@@ -1110,9 +1095,9 @@ void WalletMain::accInfoRequest()
     }
 }
 
-void WalletMain::accTxRequest()
+void WalletMain::accTxRequest(QJsonArray accs)
 {
-    for (const auto& accountID : accounts)
+    for (const auto& accountID : (accs.size() > 0 ? accs : accounts))
     {
         // Request account transactions
         reqMap[nRequestID] = MSG_ACCOUNT_TX;
@@ -1222,6 +1207,16 @@ void WalletMain::sendPayment(bool fJustAsk)
 }
 
 // Interface handlers
+
+void WalletMain::txItemClicked(int nRow, int nCol)
+{
+    Q_UNUSED(nCol);
+
+    QTableWidgetItem *item = new QTableWidgetItem;
+    item = ui->txView->item(nRow, 4);
+    TransactionView txDlg(nullptr, item->text());
+    txDlg.exec();
+}
 
 void WalletMain::on_actionExit_triggered()
 {
