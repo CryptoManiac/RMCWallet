@@ -199,8 +199,9 @@ bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg
 {
     using namespace ripple;
     const auto& accs = keyObj["accounts"];
+    int nSize = 0;
 
-    if (!accs.isArray())
+    if (!accs.isArray() || 0 == (nSize = accs.toArray().size()))
     {
         errorMsg = "Incorrect wallet JSON: unable to fetch accounts";
         return false;
@@ -215,9 +216,9 @@ bool WalletMain::processMultiWallet(const QJsonObject& keyObj, QString& errorMsg
         accounts.push_back(toBase58(keyData.accountID).c_str());
     }
 
-    balances = std::vector<int64_t>(accs.toArray().size(), 0);
-    sequences = std::vector<int>(accs.toArray().size(), 0);
-    transactions = std::vector<TxVector>(accs.toArray().size(), TxVector());
+    balances = std::vector<int64_t>(nSize, 0);
+    sequences = std::vector<int>(nSize, 0);
+    transactions = std::vector<TxVector>(nSize, TxVector());
 
     return true;
 }
