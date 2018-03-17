@@ -1254,18 +1254,11 @@ void WalletMain::on_actionImport_key_triggered()
     while (true)
     {
         // Ask user to import his WIF formatted key
-        auto result = importReq.exec();
-        if (result == QDialog::Accepted)
-        {
-            if(!importKey(importReq.getKeyData(), newAccountID))
-                continue; // Incorrect WIF string, ask user again
-            break;
-        }
-        else
-        {
-            // User refused
-            return;
-        }
+        if (importReq.exec() != QDialog::Accepted)
+            return; // User refused
+        if(!importKey(importReq.getKeyData(), newAccountID))
+            continue; // Incorrect WIF string, ask user again
+        break;
     }
 
     showMessage("Import", QString("Key import was done successfully and account %1 has been created.").arg(newAccountID), 0);
