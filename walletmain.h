@@ -26,10 +26,10 @@ class WalletMain;
 #include "msgkind.h"
 
 struct KeyData {
-    ripple::SecretKey secretKey;
-    ripple::PublicKey publicKey;
-    std::vector<unsigned char> encryptedKey;
-    ripple::AccountID accountID;
+    ripple::SecretKey rsSecretKey;
+    ripple::PublicKey rpPublicKey;
+    std::vector<unsigned char> vchCryptedKey;
+    ripple::AccountID raAccountID;
 };
 
 typedef std::vector<std::vector<QString> > TxVector;
@@ -88,19 +88,18 @@ private:
     // Fees
     int64_t nFee = 1, nFeeRef = 1, nReserve = 10;
 
-    int64_t nLedgerIndex = -1;
-    QString ledgerHash;
-    int64_t nLedgerCloseTime = 0;
-    int nLedgerTxes = 0;
+    int64_t nIndex = -1, nCloseTime = 0;
+    QString sHash;
+    int nTxes = 0;
 
     // Wallet data
     int nDeriveIterations = 0;
-    std::string strMasterPubKey;
+    std::string sMasterPubKey;
     std::vector<unsigned char> vchDerivationSalt;
     std::vector<unsigned char> vchCryptedMasterKey;
 
     int nMainAccount = 0;
-    std::vector<KeyData> keyStore;
+    std::vector<KeyData> vkStore;
     QJsonArray vsAccounts;
     std::vector<int64_t> vnBalances;
     std::vector<int> vnSequences;

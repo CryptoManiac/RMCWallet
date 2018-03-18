@@ -2,9 +2,9 @@
 #include <QMessageBox>
 #include <tuple>
 
-Error noError = Error(E_NONE, "none", "none");
-Error noPassword = Error(E_NONE, "password", "password");
-Error noWif = Error(E_NONE, "wif", "wif");
+Error eNone = Error(E_NONE, "none", "none");
+Error eNoPassword = Error(E_NONE, "password", "password");
+Error eNoWif = Error(E_NONE, "wif", "wif");
 
 void Show(const Error& peErr)
 {

@@ -50,17 +50,17 @@ Error WalletMain::createPaymentTx(const QString& psRecvAcc, std::int64_t pnAmoun
     if (pnAmount <= 0)
         return Error(E_FATAL, "Payment", "You can send only positive amounts.");
 
-    auto& keyData = keyStore[nMainAccount];
+    auto& kData = vkStore[nMainAccount];
 
     STTx noopTx(ttPAYMENT,
                 [&](auto& obj)
     {
         // General transaction fields
-        obj[sfAccount] = keyData.accountID;
+        obj[sfAccount] = kData.raAccountID;
         obj[sfFee] = STAmount{ static_cast<uint64_t>(pnTxFee) };
         obj[sfFlags] = tfFullyCanonicalSig;
         obj[sfSequence] = vnSequences[nMainAccount];
-        obj[sfSigningPubKey] = keyData.publicKey.slice();
+        obj[sfSigningPubKey] = kData.rpPublicKey.slice();
         // Payment-specific fields
         obj[sfAmount] = STAmount { static_cast<uint64_t>(pnAmount) };
         obj[sfDestination] = *destination;
@@ -71,15 +71,12 @@ Error WalletMain::createPaymentTx(const QString& psRecvAcc, std::int64_t pnAmoun
 
     try
     {
-        auto res = askPassword();
-        if (noError != res)
-        {
-            return res;
-        }
-
-        noopTx.sign(keyData.publicKey, keyData.secretKey);
+        auto eRes = askPassword();
+        if (eNone != eRes)
+            return eRes;
+        noopTx.sign(kData.rpPublicKey, kData.rsSecretKey);
         if (nDeriveIterations != 0)
-            keyData.secretKey.~SecretKey();
+            kData.rsSecretKey.~SecretKey();
         psJson = noopTx.getJson(0).toStyledString().c_str();
         psHex = strHex(noopTx.getSerializer().peekData()).c_str();
     }
@@ -88,7 +85,7 @@ Error WalletMain::createPaymentTx(const QString& psRecvAcc, std::int64_t pnAmoun
         return Error(E_FATAL, "Payment", e.what());
     }
 
-    return noError;
+    return eNone;
 }
 
 Error WalletMain::processWalletEntry(const QJsonObject& poKey, KeyData& pkData)
@@ -108,7 +105,7 @@ Error WalletMain::processWalletEntry(const QJsonObject& poKey, KeyData& pkData)
     if (!poKey["encrypted_private_key"].isUndefined() && poKey["public_key"].isUndefined())
         return Error(E_FATAL, "Wallet", "Senseless wallet record found: encrypted private key is present, but no public key available for account " + poKey["account_id"].toString());
 
-    pkData.accountID = *decodeResult1;
+    pkData.raAccountID = *decodeResult1;
 
     if ( !poKey["private_key"].isUndefined() && !poKey["private_key"].isNull())
     {
@@ -117,12 +114,12 @@ Error WalletMain::processWalletEntry(const QJsonObject& poKey, KeyData& pkData)
         if (! decodeResult)
             return Error(E_FATAL, "Wallet", "Unable to read private key, it looks like your wallet data was corrupted");
 
-        pkData.secretKey = *decodeResult;
-        pkData.publicKey = derivePublicKey(pkData.secretKey);
-        if (pkData.accountID != calcAccountID(pkData.publicKey))
+        pkData.rsSecretKey = *decodeResult;
+        pkData.rpPublicKey = derivePublicKey(pkData.rsSecretKey);
+        if (pkData.raAccountID != calcAccountID(pkData.rpPublicKey))
             return Error(E_FATAL, "Wallet", "Private key doesn't match your account ID, it looks like your wallet data was corrupted");
 
-        return noError;
+        return eNone;
     }
     else
     {
@@ -133,10 +130,10 @@ Error WalletMain::processWalletEntry(const QJsonObject& poKey, KeyData& pkData)
         if (! decodeResult2 || ! decodeResult4)
             return Error(E_FATAL, "Wallet", "Unable to decode encrypted key, it looks like your wallet data was corrupted");
 
-        pkData.encryptedKey = *decodeResult2;
-        pkData.publicKey = PublicKey(makeSlice(*decodeResult4));
+        pkData.vchCryptedKey = *decodeResult2;
+        pkData.rpPublicKey = PublicKey(makeSlice(*decodeResult4));
 
-        return noError;
+        return eNone;
     }
 }
 
@@ -152,18 +149,18 @@ Error WalletMain::processWallet(const QJsonObject& poKey)
     for (const auto& account : accs.toArray())
     {
         KeyData keyData;
-        auto res = processWalletEntry(account.toObject(), keyData);
-        if (noError != res)
-            return res;
-        keyStore.push_back(keyData);
-        vsAccounts.push_back(toBase58(keyData.accountID).c_str());
+        auto eRes = processWalletEntry(account.toObject(), keyData);
+        if (eNone != eRes)
+            return eRes;
+        vkStore.push_back(keyData);
+        vsAccounts.push_back(toBase58(keyData.raAccountID).c_str());
     }
 
     vnBalances = std::vector<int64_t>(nSize, 0);
     vnSequences = std::vector<int>(nSize, 0);
     vtTransactions = std::vector<TxVector>(nSize, TxVector());
 
-    return noError;
+    return eNone;
 }
 
 Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
@@ -182,7 +179,7 @@ Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
 
 
     KeyData keyData;
-    keyData.accountID = *decodeResult1;
+    keyData.raAccountID = *decodeResult1;
 
     if (! poKey["encrypted_private_key"].isUndefined())
     {
@@ -197,7 +194,7 @@ Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
             return Error(E_FATAL, "Conversion", "Unable to decode encrypted key, it looks like your wallet data was corrupted");
 
         vchDerivationSalt = *decodeResult2;
-        keyData.encryptedKey = *decodeResult3;
+        keyData.vchCryptedKey = *decodeResult3;
 
         nDeriveIterations = poKey["iterations"].toInt();
         if (nDeriveIterations == 0) nDeriveIterations = 500000;
@@ -208,28 +205,28 @@ Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
         {
             EnterPassword pwDialog(this);
             if (pwDialog.exec() != QDialog::Accepted)
-                return noPassword; // User refused to enter the password
+                return eNoPassword; // User refused to enter the password
             bool fOk = true;
             strPassword = pwDialog.getPassword();
-            if (fOk) fOk = legacyDecryptKey(keyData.encryptedKey, strPassword, vchDerivationSalt, nDeriveIterations, keyData.secretKey);
+            if (fOk) fOk = legacyDecryptKey(keyData.vchCryptedKey, strPassword, vchDerivationSalt, nDeriveIterations, keyData.rsSecretKey);
             if (fOk) break;
             continue; // Wrong password, try again
         }
 
-        keyData.publicKey = derivePublicKey(keyData.secretKey);
-        if (keyData.accountID != calcAccountID(keyData.publicKey))
+        keyData.rpPublicKey = derivePublicKey(keyData.rsSecretKey);
+        if (keyData.raAccountID != calcAccountID(keyData.rpPublicKey))
             return Error(E_FATAL, "Conversion", "Private key doesn't match your account ID, it looks like your wallet data was corrupted");
 
         secure::string rsaPrivKey;
-        if (! generateRSAKeys(rsaPrivKey, strMasterPubKey))
+        if (! generateRSAKeys(rsaPrivKey, sMasterPubKey))
             return Error(E_FATAL, "Conversion", "Unable to generate RSA key pair");
 
         if (! encryptRSAKey(rsaPrivKey, strPassword, vchDerivationSalt, nDeriveIterations, vchCryptedMasterKey))
             return Error(E_FATAL, "Conversion", "Error while encrypting RSA private key");
 
-        if (! encryptSecretKey(keyData.secretKey, strMasterPubKey, keyData.encryptedKey))
+        if (! encryptSecretKey(keyData.rsSecretKey, sMasterPubKey, keyData.vchCryptedKey))
             return Error(E_FATAL, "Conversion", "Error while encrypting your wallet");
-        keyData.secretKey.~SecretKey(); // Destroy secret key object
+        keyData.rsSecretKey.~SecretKey(); // Destroy secret key object
     }
     else
     {
@@ -237,14 +234,14 @@ Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
         auto decodeResult = parseHex<SecretKey>(poKey["private_key"].toString().toStdString());
         if (! decodeResult)
             return Error(E_FATAL, "Conversion", "Unable to read private key, it looks like your wallet data was corrupted");
-        keyData.secretKey = *decodeResult;
-        keyData.publicKey = derivePublicKey(keyData.secretKey);
-        if (keyData.accountID != calcAccountID(keyData.publicKey))
+        keyData.rsSecretKey = *decodeResult;
+        keyData.rpPublicKey = derivePublicKey(keyData.rsSecretKey);
+        if (keyData.raAccountID != calcAccountID(keyData.rpPublicKey))
             return Error(E_FATAL, "Conversion", "Private key doesn't match your account ID, it looks like your wallet data was corrupted");
     }
 
-    keyStore.push_back(keyData);
-    vsAccounts.push_back(toBase58(keyData.accountID).c_str());
+    vkStore.push_back(keyData);
+    vsAccounts.push_back(toBase58(keyData.raAccountID).c_str());
     vnBalances.push_back(0);
     vnSequences.push_back(0);
     vtTransactions.push_back(TxVector());
@@ -252,7 +249,7 @@ Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
 
     saveKeys();
 
-    return noError;
+    return eNone;
 }
 
 
@@ -268,28 +265,28 @@ Error WalletMain::loadWallet()
     {
         // Brand new wallet
         ImportDialog importReq;
-        QString strAccountID;
+        QString sAccID;
         while (true)
         {
             // Ask user to import his WIF formatted key
             if (importReq.exec() == QDialog::Accepted)
             {
-                auto res = importKey(importReq.getKeyData(), strAccountID);
-                if (noWif == res)
+                auto eRes = importKey(importReq.getKeyData(), sAccID);
+                if (eNoWif == eRes)
                     continue; // Incorrect WIF string entered, ask user again
-                if( noError != res)
-                    return res;
+                if( eNone != eRes)
+                    return eRes;
             }
             else
             {
-                auto res = newKey(strAccountID); // User refused, generating new private key
-                if (noError != res)
-                    Show(res);
+                auto eRes = newKey(sAccID); // User refused, generating new private key
+                if (eNone != eRes)
+                    Show(eRes);
             }
             break;
         }
 
-        return noError;
+        return eNone;
     }
     else
     {
@@ -305,7 +302,7 @@ Error WalletMain::loadWallet()
 
             vchDerivationSalt = *decodeResult1;
             vchCryptedMasterKey = *decodeResult2;
-            strMasterPubKey = keyObj["encryption"].toObject()["master_public_key"].toString().toStdString();
+            sMasterPubKey = keyObj["encryption"].toObject()["master_public_key"].toString().toStdString();
             nDeriveIterations = keyObj["encryption"].toObject()["iterations"].toInt();
             if (nDeriveIterations == 0) nDeriveIterations = 500000;
 
@@ -332,17 +329,17 @@ void WalletMain::saveKeys(bool pbOverwrite)
     using namespace ripple;
 
     QJsonArray keysArr;
-    for(const auto &keyData : keyStore)
+    for(const auto &keyData : vkStore)
     {
         QJsonObject keyObj;
-        keyObj["account_id"] = toBase58(keyData.accountID).c_str();
-        if (keyData.encryptedKey.size() != 0)
+        keyObj["account_id"] = toBase58(keyData.raAccountID).c_str();
+        if (keyData.vchCryptedKey.size() != 0)
         {
-            keyObj["encrypted_private_key"] = strHex(keyData.encryptedKey.data(), keyData.encryptedKey.size()).c_str();
-            keyObj["public_key"] = strHex(keyData.publicKey.data(), keyData.publicKey.size()).c_str();
+            keyObj["encrypted_private_key"] = strHex(keyData.vchCryptedKey.data(), keyData.vchCryptedKey.size()).c_str();
+            keyObj["public_key"] = strHex(keyData.rpPublicKey.data(), keyData.rpPublicKey.size()).c_str();
         }
         else
-            keyObj["private_key"] = strHex(keyData.secretKey.data(), 32).c_str();
+            keyObj["private_key"] = strHex(keyData.rsSecretKey.data(), 32).c_str();
 
         keysArr.push_back(keyObj);
     }
@@ -357,7 +354,7 @@ void WalletMain::saveKeys(bool pbOverwrite)
     {
         walletObj["encryption"] = QJsonObject
         {
-            { "master_public_key", strMasterPubKey.c_str() },
+            { "master_public_key", sMasterPubKey.c_str() },
             { "encrypted_master_private_key", strHex(vchCryptedMasterKey.data(), vchCryptedMasterKey.size()).c_str() },
             { "salt", strHex(vchDerivationSalt.data(), vchDerivationSalt.size()).c_str() },
             { "iterations", nDeriveIterations }
@@ -388,20 +385,20 @@ Error WalletMain::newKey(QString& psNewAccID)
 {
     using namespace ripple;
     KeyData keyData;
-    std::tie(keyData.publicKey, keyData.secretKey) = randomKeyPair();
-    keyData.accountID = calcAccountID(keyData.publicKey);
+    std::tie(keyData.rpPublicKey, keyData.rsSecretKey) = randomKeyPair();
+    keyData.raAccountID = calcAccountID(keyData.rpPublicKey);
 
     if (nDeriveIterations != 0)
     {
         // Encrypt new key
-        if (! encryptSecretKey(keyData.secretKey, strMasterPubKey, keyData.encryptedKey))
+        if (! encryptSecretKey(keyData.rsSecretKey, sMasterPubKey, keyData.vchCryptedKey))
             return Error(E_FATAL, "New key", "Error while encrypting new key, operation has been aborted");
-        keyData.secretKey.~SecretKey(); // Destroy secret key object
+        keyData.rsSecretKey.~SecretKey(); // Destroy secret key object
     }
 
-    psNewAccID = toBase58(keyData.accountID).c_str();
+    psNewAccID = toBase58(keyData.raAccountID).c_str();
 
-    keyStore.push_back(keyData);
+    vkStore.push_back(keyData);
     vsAccounts.push_back(psNewAccID);
     vnBalances.push_back(0);
     vnSequences.push_back(0);
@@ -412,7 +409,7 @@ Error WalletMain::newKey(QString& psNewAccID)
     accTxRequest({ psNewAccID });
     subsLedgerAndAccountRequest();
 
-    return noError;
+    return eNone;
 }
 
 Error WalletMain::importKey(const secure::string& psKey, QString& psNewAccID)
@@ -420,26 +417,26 @@ Error WalletMain::importKey(const secure::string& psKey, QString& psNewAccID)
     using namespace ripple;
     auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, psKey.c_str());
     if (! decodeResult)
-        return noWif; // Incorrect WIF string
+        return eNoWif; // Incorrect WIF string
     KeyData keyData;
-    keyData.secretKey = *decodeResult;
-    keyData.publicKey = derivePublicKey(keyData.secretKey);
-    keyData.accountID = calcAccountID(keyData.publicKey);
-    psNewAccID = toBase58(keyData.accountID).c_str();
+    keyData.rsSecretKey = *decodeResult;
+    keyData.rpPublicKey = derivePublicKey(keyData.rsSecretKey);
+    keyData.raAccountID = calcAccountID(keyData.rpPublicKey);
+    psNewAccID = toBase58(keyData.raAccountID).c_str();
 
     if (nDeriveIterations != 0)
     {
         // Encrypt new key
-        if (! encryptSecretKey(keyData.secretKey, strMasterPubKey, keyData.encryptedKey))
+        if (! encryptSecretKey(keyData.rsSecretKey, sMasterPubKey, keyData.vchCryptedKey))
             return Error(E_FATAL, "Key import", "Error while encrypting new key, operation has been aborted");
-        keyData.secretKey.~SecretKey(); // Destroy secret key object
+        keyData.rsSecretKey.~SecretKey(); // Destroy secret key object
     }
 
     auto it = std::find(vsAccounts.begin(), vsAccounts.end(), psNewAccID);
     if (it != vsAccounts.end())
         return Error(E_WARN, "Key import", "This key already exists in your wallet");
 
-    keyStore.push_back(keyData);
+    vkStore.push_back(keyData);
     vsAccounts.push_back(psNewAccID);
     vnBalances.push_back(0);
     vnSequences.push_back(0);
@@ -450,26 +447,26 @@ Error WalletMain::importKey(const secure::string& psKey, QString& psNewAccID)
     accTxRequest({ psNewAccID });
     subsLedgerAndAccountRequest();
 
-    return noError;
+    return eNone;
 }
 
 Error WalletMain::exportKey(QString& psKey)
 {
     using namespace ripple;
-    auto res = askPassword();
-    if (noError == res)
-        psKey = toWIF(keyStore[nMainAccount].secretKey).c_str();
-    return res;
+    auto eRes = askPassword();
+    if (eNone == eRes)
+        psKey = toWIF(vkStore[nMainAccount].rsSecretKey).c_str();
+    return eRes;
 }
 
 
 Error WalletMain::askPassword()
 {
     using namespace ripple;
-    auto& keyData = keyStore[nMainAccount];
+    auto& keyData = vkStore[nMainAccount];
 
     if (nDeriveIterations == 0)
-        return noError;
+        return eNone;
 
     while (true)
     {
@@ -481,11 +478,11 @@ Error WalletMain::askPassword()
             fOk = decryptRSAKey(vchCryptedMasterKey, pwDialog.getPassword(), vchDerivationSalt, nDeriveIterations, decryptionKey);
             if (fOk)
             {
-                fOk = decryptSecretKey(keyData.encryptedKey, decryptionKey, keyData.secretKey);
-                fOk = fOk && (keyData.accountID == calcAccountID(keyData.publicKey));
+                fOk = decryptSecretKey(keyData.vchCryptedKey, decryptionKey, keyData.rsSecretKey);
+                fOk = fOk && (keyData.raAccountID == calcAccountID(keyData.rpPublicKey));
             }
 
-            if (fOk) return noError;
+            if (fOk) return eNone;
 
             // Wrong password, try again
             continue;
@@ -493,7 +490,7 @@ Error WalletMain::askPassword()
         else
         {
             // User refused to enter the password
-            return noPassword;
+            return eNoPassword;
         }
     }
 }
@@ -507,11 +504,11 @@ WalletMain::WalletMain(QWidget *parent) :
 #error "SSL support is required"
 #endif
 
-    auto res = loadWallet();
-    if ( noError != res)
+    auto eRes = loadWallet();
+    if ( eNone != eRes)
     {
-        if (res != noPassword)
-            Show(res);
+        if (eRes != eNoPassword)
+            Show(eRes);
         QTimer::singleShot(250, qApp, SLOT(quit()));
         return;
     }
@@ -556,13 +553,13 @@ void WalletMain::setOnline(bool pbFlag, const QString& psReason)
 {
     using namespace ripple;
 
-    QString strAccountID = toBase58(keyStore[nMainAccount].accountID).c_str();
+    QString strAccountID = toBase58(vkStore[nMainAccount].raAccountID).c_str();
     this->setWindowTitle(QString("RMC Wallet [%1%2]").arg(strAccountID).arg(pbFlag ? "" : ", offline"));
 
     // Select default tab
     if (! pbFlag) ui->tabWidget->setCurrentIndex(0);
     if (! pbFlag) vnBalances[nMainAccount] = 0;
-    if (! pbFlag) nLedgerIndex = -1;
+    if (! pbFlag) nIndex = -1;
     if (pbFlag) nConnectAttempt = 0;
 
     // Send form and tab widget headers
@@ -574,14 +571,14 @@ void WalletMain::setOnline(bool pbFlag, const QString& psReason)
 
     // Statusbar labels
     balanceLabel.setText(QString("Balance: %1").arg(AmountWithSign(vnBalances[nMainAccount])));
-    ledgerLabel.setText(QString("Current ledger: %1").arg(nLedgerIndex));
+    ledgerLabel.setText(QString("Current ledger: %1").arg(nIndex));
     networkStatusLabel.setText(QString("Network status: %1").arg(psReason));
 
     // Network info tab
-    ui->latestLedgerHash->setText(ledgerHash);
-    ui->latestLedgerNum->setText(QString("%1").arg(nLedgerIndex));
-    ui->transactionsCount->setText(QString("%1").arg(nLedgerTxes));
-    ui->closeTime->setText(timeFormat(nLedgerCloseTime));
+    ui->latestLedgerHash->setText(sHash);
+    ui->latestLedgerNum->setText(QString("%1").arg(nIndex));
+    ui->transactionsCount->setText(QString("%1").arg(nTxes));
+    ui->closeTime->setText(timeFormat(nCloseTime));
     ui->baseFeeValue->setText(AmountWithSign(nFee));
     ui->feeRefValue->setText(AmountWithSign(nFeeRef));
     ui->baseReserveValue->setText(AmountWithSign(nReserve));
@@ -615,7 +612,7 @@ void WalletMain::setupControls(QWidget *parent)
     ui->txView->verticalHeader()->setVisible(false);
     ui->txView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->txView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
-    ui->actionEncrypt_wallet->setDisabled(keyStore[nMainAccount].encryptedKey.size() != 0);
+    ui->actionEncrypt_wallet->setDisabled(vkStore[nMainAccount].vchCryptedKey.size() != 0);
 
     connect(ui->txView, SIGNAL(cellDoubleClicked(int,int)), this, SLOT(txItemClicked(int,int)));
 }
@@ -842,14 +839,14 @@ void WalletMain::processTxMessage(QJsonObject poTxn)
 
 void WalletMain::processLedgerMessage(QJsonObject poLedger)
 {
-    nLedgerIndex = poLedger["ledger_index"].toDouble();
+    nIndex = poLedger["ledger_index"].toDouble();
     nFee = poLedger["fee_base"].toDouble();
     nFeeRef = poLedger["fee_ref"].toDouble();
     nReserve = poLedger["reserve_base"].toDouble();
-    ledgerHash = poLedger["ledger_hash"].toString();
-    nLedgerCloseTime = poLedger["ledger_time"].toDouble();
-    nLedgerTxes = poLedger["txn_count"].toInt();
-    setOnline(true, QString("ledger %1 closed").arg(ledgerHash.left(6)));
+    sHash = poLedger["ledger_hash"].toString();
+    nCloseTime = poLedger["ledger_time"].toDouble();
+    nTxes = poLedger["txn_count"].toInt();
+    setOnline(true, QString("ledger %1 closed").arg(sHash.left(6)));
 }
 
 void WalletMain::accInfoResponse(QJsonObject poResp)
@@ -945,7 +942,7 @@ void WalletMain::subsLedgerAndAccountResponse(QJsonObject poResp)
 
     nFee = result["fee_base"].toDouble();
     nFeeRef = result["fee_ref"].toDouble();
-    nLedgerIndex = result["ledger_index"].toDouble();
+    nIndex = result["ledger_index"].toDouble();
     nReserve = result["reserve_base"].toDouble();
 
     setOnline(true, "Subscribed to ledger and account notifications");
@@ -1016,13 +1013,13 @@ void WalletMain::subsLedgerAndAccountRequest()
 
 void WalletMain::sendPayment(bool pbJustAsk)
 {
-    auto& keyData = keyStore[nMainAccount];
+    auto& kData = vkStore[nMainAccount];
 
-    if (ui->receiverAddressEdit->text() == ripple::toBase58(keyData.accountID).c_str() )
+    if (ui->receiverAddressEdit->text() == ripple::toBase58(kData.raAccountID).c_str() )
         return Show("Error", "Sending to self basically has no sense and is not supported.", E_WARN);
 
-    QString txHex, txJSON, strErr;
-    QString strReceiver = ui->receiverAddressEdit->text();
+    QString sHex, sJSON;
+    QString sRecvAcc = ui->receiverAddressEdit->text();
     int64_t nAmount = readDouble(ui->amountToSend) * 1000000;
     int64_t nTagID = readInt(ui->destinationTag);
     int64_t nTxFee = readDouble(ui->sendTransactionFeeValue) * 1000000;
@@ -1031,33 +1028,33 @@ void WalletMain::sendPayment(bool pbJustAsk)
     if (nAmount > (vnBalances[nMainAccount] - nTxFee - nReserve))
         return Show("Warning", "Transaction amount is greater than amount of available funds. This could happen if your available balance doesn't comply with either fee or reserve requirements.", E_WARN);
 
-    auto result = createPaymentTx(strReceiver, nAmount, nTxFee, nTagID, txJSON, txHex);
-    if (noError == result)
+    auto eRes = createPaymentTx(sRecvAcc, nAmount, nTxFee, nTagID, sJSON, sHex);
+    if (eNone == eRes)
     {
-        int expected = 0;
-        QDialog* interaction = nullptr;
+        int nExpected = 0;
+        QDialog* qActionDlg = nullptr;
 
         if (pbJustAsk)
         {
             QString strConf = "I'm about to send " + ui->amountToSend->text()
                     + " RMC to " + ui->receiverAddressEdit->text() + ". Do you agree?";
 
-            expected = QMessageBox::Yes;
-            interaction = new QMessageBox(QMessageBox::Information, "Confirmation", strConf, QMessageBox::Yes | QMessageBox::No);
+            nExpected = QMessageBox::Yes;
+            qActionDlg = new QMessageBox(QMessageBox::Information, "Confirmation", strConf, QMessageBox::Yes | QMessageBox::No);
         }
         else
         {
-            expected = QDialog::Accepted;
-            interaction = new TransactionPreview(nullptr, txJSON, txHex);
+            nExpected = QDialog::Accepted;
+            qActionDlg = new TransactionPreview(nullptr, sJSON, sHex);
         }
 
-        auto choice = interaction->exec();
-        delete interaction;
+        auto nChoice = qActionDlg->exec();
+        delete qActionDlg;
 
-        if (choice == expected)
+        if (nChoice == nExpected)
         {
             // Submit transaction and disable send button till confirmation from server
-            submitRequest(txHex);
+            submitRequest(sHex);
             ui->sendButton->setEnabled(false);
             ui->previewButton->setEnabled(false);
             ui->receiverAddressEdit->setText("");
@@ -1068,8 +1065,8 @@ void WalletMain::sendPayment(bool pbJustAsk)
         return;
     }
 
-    if (result != noPassword)
-        Show(result);
+    if (eRes != eNoPassword)
+        Show(eRes);
 }
 
 // Interface handlers
@@ -1117,11 +1114,11 @@ void WalletMain::on_actionImport_key_triggered()
         // Ask user to import his WIF formatted key
         if (importReq.exec() != QDialog::Accepted)
             return; // User refused
-        auto res = importKey(importReq.getKeyData(), newAccountID);
-        if (noWif == res)
+        auto eRes = importKey(importReq.getKeyData(), newAccountID);
+        if (eNoWif == eRes)
             continue; // Incorrect WIF string, ask user again
-        if (noError != res)
-            return Show(res);
+        if (eNone != eRes)
+            return Show(eRes);
     }
 
     Show("Import", QString("Key import was done successfully and account %1 has been created.").arg(newAccountID), E_INFO);
@@ -1132,9 +1129,9 @@ void WalletMain::on_actionGenerateNew_triggered()
     if (QMessageBox::Yes == QMessageBox(QMessageBox::Information, "Confirmation", "Are you sure you need another account?", QMessageBox::Yes|QMessageBox::No).exec())
     {
         QString newAccountID;
-        auto res = newKey(newAccountID);
-        if (noError != res)
-            return Show(res);
+        auto eRes = newKey(newAccountID);
+        if (eNone != eRes)
+            return Show(eRes);
         Show("Success", QString("Your new account %1 has been generated and saved successfully.").arg(newAccountID), E_INFO);
     }
 }
@@ -1144,15 +1141,15 @@ void WalletMain::on_actionExport_key_triggered()
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->clear();
     QString keyWIF;
-    auto res = exportKey(keyWIF);
+    auto eRes = exportKey(keyWIF);
 
-    if (noError != res) {
-        if (noPassword != res)
-            Show(res);
+    if (eNone != eRes) {
+        if (eNoPassword != eRes)
+            Show(eRes);
         return;
     }
 
-    keyStore[nMainAccount].secretKey.~SecretKey();
+    vkStore[nMainAccount].rsSecretKey.~SecretKey();
     clipboard->setText(keyWIF);
     Show("Export", "Your key is in clipboard now.", E_INFO);
 }
@@ -1161,7 +1158,7 @@ void WalletMain::on_actionCopy_account_address_triggered()
 {
     QClipboard *clipboard = QApplication::clipboard();
     clipboard->clear();
-    clipboard->setText(ripple::toBase58(keyStore[nMainAccount].accountID).c_str());
+    clipboard->setText(ripple::toBase58(vkStore[nMainAccount].raAccountID).c_str());
     Show("Copy account ID", "Your address is in clipboard now.", E_INFO);
 }
 
@@ -1185,19 +1182,19 @@ void WalletMain::on_actionEncrypt_wallet_triggered()
             return Show("Error", "Entered passwords do not match.", E_WARN);
 
         secure::string rsaPrivKey;
-        if (! generateRSAKeys(rsaPrivKey, strMasterPubKey))
+        if (! generateRSAKeys(rsaPrivKey, sMasterPubKey))
             return Show("Error", "Unable to generate RSA key pair", E_FATAL);
 
         if (! encryptRSAKey(rsaPrivKey, strPassword1, vchDerivationSalt, nDeriveIterations, vchCryptedMasterKey))
             return Show("Error", "Error while encrypting RSA private key", E_FATAL);
 
-        for(auto &keyData : keyStore)
+        for(auto &keyData : vkStore)
         {
-            if (keyData.encryptedKey.size() == 0)
+            if (keyData.vchCryptedKey.size() == 0)
             {
-                if (! encryptSecretKey(keyData.secretKey, strMasterPubKey, keyData.encryptedKey))
+                if (! encryptSecretKey(keyData.rsSecretKey, sMasterPubKey, keyData.vchCryptedKey))
                     return Show ("Error", "Error while encrypting your wallet", E_FATAL);
-                keyData.secretKey.~SecretKey(); // Destroy secret key object
+                keyData.rsSecretKey.~SecretKey(); // Destroy secret key object
             }
         }
 

@@ -6,6 +6,7 @@
 #include <QScrollArea>
 
 void TxTable::Init(QWidget *parent) {
+    Q_UNUSED(parent);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
     setTabKeyNavigation(false);
     setContextMenuPolicy(Qt::CustomContextMenu);

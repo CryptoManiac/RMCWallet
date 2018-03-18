@@ -13,9 +13,9 @@ enum ErrorType
 
 typedef std::tuple<ErrorType, QString, QString> Error;
 
-extern Error noError;
-extern Error noPassword;
-extern Error noWif;
+extern Error eNone;
+extern Error eNoPassword;
+extern Error eNoWif;
 
 void Show(const Error& peErr);
 void Show(const QString& psCaption, const QString& psMsg, ErrorType);
