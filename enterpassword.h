@@ -2,7 +2,7 @@
 #define ENTERPASSWORD_H
 
 #include <QDialog>
-#include "encryption.h"
+#include "secure.h"
 
 namespace Ui {
 class EnterPassword;

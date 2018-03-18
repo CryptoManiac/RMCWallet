@@ -2,11 +2,15 @@
 #include <QMessageBox>
 #include <tuple>
 
-void Show(const Error& err)
+Error noError = Error(E_NONE, "none", "none");
+Error noPassword = Error(E_NONE, "password", "password");
+Error noWif = Error(E_NONE, "wif", "wif");
+
+void Show(const Error& peErr)
 {
     ErrorType errT;
     QString errCap, errStr;
-    std::tie(errT, errCap, errStr) = err;
+    std::tie(errT, errCap, errStr) = peErr;
     if (errT == E_NONE) return;
 
     QMessageBox messageBox;
@@ -19,14 +23,14 @@ void Show(const Error& err)
     messageBox.setFixedSize(500, 200);
 }
 
-void Show(const QString& caption, const QString& message, ErrorType errT)
+void Show(const QString& psCaption, const QString& psMsg, ErrorType errT)
 {
     QMessageBox messageBox;
     if (errT == E_INFO)
-        messageBox.information(nullptr, caption, message);
+        messageBox.information(nullptr, psCaption, psMsg);
     if (errT == E_WARN)
-        messageBox.warning(nullptr, caption, message);
+        messageBox.warning(nullptr, psCaption, psMsg);
     if (errT == E_FATAL)
-        messageBox.critical(nullptr, caption, message);
+        messageBox.critical(nullptr, psCaption, psMsg);
     messageBox.setFixedSize(500, 200);
 }

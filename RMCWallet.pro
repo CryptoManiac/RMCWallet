@@ -118,7 +118,9 @@ HEADERS += walletmain.h \
     intvalidator.h \
     txtable.h \
     switchaccount.h \
-    errors.h
+    errors.h \
+    secure.h \
+    format.h
 
 
 FORMS += walletmain.ui \

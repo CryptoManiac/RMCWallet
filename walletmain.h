@@ -46,8 +46,8 @@ private Q_SLOTS:
     // Network events
     void onConnected();
     void doReconnect();
-    void onConnectionError(QAbstractSocket::SocketError error);
-    void onTextMessageReceived(QString message);
+    void onConnectionError(QAbstractSocket::SocketError psError);
+    void onTextMessageReceived(QString psMsg);
 
     // Transaction form actions
     void on_clearButton_clicked();
@@ -65,7 +65,7 @@ private Q_SLOTS:
     void on_actionAbout_triggered();
 
     // Transaction history actions
-    void txItemClicked(int nRow, int nCol);
+    void txItemClicked(int pnRow, int pnCol);
 
 
     void on_actionSwitch_account_triggered();
@@ -79,36 +79,35 @@ private:
     QLabel networkStatusLabel;
 
     // WebSocket connection
-    QWebSocket m_webSocket;
+    QWebSocket wSockConn;
     int nConnectAttempt = 0;
 
     // RPC Request ID
     int nRequestID = 1;
 
-    // Fee and sequence
-    int64_t nFee = 10;
-    int64_t nFeeRef = 10;
-    int64_t nLedger = -1;
-    int64_t nReserve = 2500;
+    // Fees
+    int64_t nFee = 1, nFeeRef = 1, nReserve = 10;
+
+    int64_t nLedgerIndex = -1;
     QString ledgerHash;
-    int64_t ledgerCloseTime = 0;
-    int ledgerTransactions = 0;
+    int64_t nLedgerCloseTime = 0;
+    int nLedgerTxes = 0;
 
     // Wallet data
     int nDeriveIterations = 0;
-    std::string mRSAPubKey;
-    std::vector<unsigned char> mSalt;
-    std::vector<unsigned char> mRSACryptedkey;
+    std::string strMasterPubKey;
+    std::vector<unsigned char> vchDerivationSalt;
+    std::vector<unsigned char> vchCryptedMasterKey;
 
-    int nCurrentAccount = 0;
+    int nMainAccount = 0;
     std::vector<KeyData> keyStore;
-    QJsonArray accounts;
-    std::vector<int64_t> balances;
-    std::vector<int> sequences;
-    std::vector<TxVector> transactions;
+    QJsonArray vsAccounts;
+    std::vector<int64_t> vnBalances;
+    std::vector<int> vnSequences;
+    std::vector<TxVector> vtTransactions;
 
     // RPC request map
-    std::map<int, MessageType> reqMap;
+    std::map<int, MessageType> nmReqMap;
 
     // ================= //
 
@@ -119,52 +118,52 @@ private:
     bool isNetworkAvailable();
 
     // Update GUI to show new connection status
-    void setOnline(bool flag = true, const QString& reason = "OK");
+    void setOnline(bool pbFlag = true, const QString& psReason = "OK");
 
 
     // Response handlers
 
-    void accInfoResponse(QJsonObject obj);
-    void accTxResponse(QJsonObject obj);
-    void submitResponse(QJsonObject obj);
-    void subsLedgerAndAccountResponse(QJsonObject obj);
+    void accInfoResponse(QJsonObject poResp);
+    void accTxResponse(QJsonObject poResp);
+    void submitResponse(QJsonObject poResp);
+    void subsLedgerAndAccountResponse(QJsonObject poResp);
 
     // Request handlers
-    void accInfoRequest(QJsonArray accs = {});
-    void accTxRequest(QJsonArray accs = {});
+    void accInfoRequest(QJsonArray poAccs = {});
+    void accTxRequest(QJsonArray poAccs = {});
     void submitRequest(QString hexBlobData);
     void subsLedgerAndAccountRequest();
 
     // Key management
     Error loadWallet();
-    Error processWalletEntry(const QJsonObject& keyObj, KeyData& keyData);
-    Error processWallet(const QJsonObject& keyObj);
-    Error convertLegacyWallet(const QJsonObject& keyObj);
-    void saveKeys(bool fOverwrite=false);
-    Error newKey(QString& newAccountID);
-    Error importKey(const secure::string& keyData, QString& newAccountID);
-    Error exportKey(QString& strKey);
+    Error processWalletEntry(const QJsonObject& poKey, KeyData& pkData);
+    Error processWallet(const QJsonObject& poKey);
+    Error convertLegacyWallet(const QJsonObject& poKey);
+    void saveKeys(bool pbOverwrite=false);
+    Error newKey(QString& psNewAccID);
+    Error importKey(const secure::string& psKey, QString& psNewAccID);
+    Error exportKey(QString& psKey);
 
     // Ask for password
     Error askPassword();
 
     // Create and sign transaction
-    Error createPaymentTx(const QString& receiverAccount, std::int64_t nAmount, std::int64_t nTransactionFee, std::int64_t nDestinationID, QString& dataJson, QString& dataHex);
+    Error createPaymentTx(const QString& psRecvAcc, std::int64_t pnAmount, std::int64_t pnTxFee, std::int64_t pnTagID, QString& psJson, QString& psHex);
 
     // Adjust element layout
     void setupControls(QWidget *parent);
 
     // Add transaction to table
-    void processTxMessage(QJsonObject txObj);
+    void processTxMessage(QJsonObject poTxn);
 
     // Pull records from vector to data grid
     void refreshTxView();
 
     // Process ledger info
-    void processLedgerMessage(QJsonObject ledgerObj);
+    void processLedgerMessage(QJsonObject poLedger);
 
     // Create and send payment
-    void sendPayment(bool fJustAsk=true);
+    void sendPayment(bool pbJustAsk=true);
 };
 
 #endif // WALLETMAIN_H

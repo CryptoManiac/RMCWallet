@@ -13,7 +13,11 @@ enum ErrorType
 
 typedef std::tuple<ErrorType, QString, QString> Error;
 
-void Show(const Error& err);
-void Show(const QString& caption, const QString& message, ErrorType);
+extern Error noError;
+extern Error noPassword;
+extern Error noWif;
+
+void Show(const Error& peErr);
+void Show(const QString& psCaption, const QString& psMsg, ErrorType);
 
 #endif // ERRORS_H

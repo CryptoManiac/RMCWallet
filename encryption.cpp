@@ -7,18 +7,18 @@
 #include <openssl/aes.h>
 #include <random>
 
-bool generateRSAKeys(secure::string& strPrivKey, std::string& strPubKey)
+bool generateRSAKeys(secure::string& psPrivKey, std::string& psPubKey)
 {
-     RSA *kp = RSA_new();
-     BIGNUM *exponent = BN_new();
-     BN_set_word(exponent, RSA_F4);
+     RSA *prKeyPair = RSA_new();
+     BIGNUM *pbnExponent = BN_new();
+     BN_set_word(pbnExponent, RSA_F4);
 
-     int res = RSA_generate_key_ex (kp, 4096, exponent, NULL);
+     int nRes = RSA_generate_key_ex (prKeyPair, 4096, pbnExponent, NULL);
 
-     if (res == 0)
+     if (nRes == 0)
      {
-         RSA_free(kp);
-         BN_clear_free(exponent);
+         RSA_free(prKeyPair);
+         BN_clear_free(pbnExponent);
          CRYPTO_cleanup_all_ex_data();
          return false;
      }
@@ -26,33 +26,33 @@ bool generateRSAKeys(secure::string& strPrivKey, std::string& strPubKey)
      BIO *pri = BIO_new(BIO_s_mem());
      BIO *pub = BIO_new(BIO_s_mem());
 
-     PEM_write_bio_RSAPrivateKey(pri, kp, NULL, NULL, 0, NULL, NULL);
-     PEM_write_bio_RSAPublicKey(pub, kp);
+     PEM_write_bio_RSAPrivateKey(pri, prKeyPair, NULL, NULL, 0, NULL, NULL);
+     PEM_write_bio_RSAPublicKey(pub, prKeyPair);
 
-     size_t pri_len = BIO_pending(pri);
-     size_t pub_len = BIO_pending(pub);
+     size_t nPriLen = BIO_pending(pri);
+     size_t nPubLen = BIO_pending(pub);
 
-     strPubKey.resize(pub_len + 1);
-     strPrivKey.resize(pri_len + 1);
-     std::fill(strPubKey.begin(), strPubKey.end(), 0);
-     std::fill(strPrivKey.begin(), strPrivKey.end(), 0);
+     psPubKey.resize(nPubLen + 1);
+     psPrivKey.resize(nPriLen + 1);
+     std::fill(psPubKey.begin(), psPubKey.end(), 0);
+     std::fill(psPrivKey.begin(), psPrivKey.end(), 0);
 
-     BIO_read(pub, &strPubKey[0], pub_len);
-     BIO_read(pri, &strPrivKey[0], pri_len);
+     BIO_read(pub, &psPubKey[0], nPubLen);
+     BIO_read(pri, &psPrivKey[0], nPriLen);
 
-     RSA_free(kp);
+     RSA_free(prKeyPair);
      BIO_free_all(pri);
      BIO_free_all(pub);
-     BN_clear_free(exponent);
+     BN_clear_free(pbnExponent);
      CRYPTO_cleanup_all_ex_data();
 
-     return res != 0;
+     return nRes != 0;
 }
 
-bool encryptRSAKey(const secure::string& keyData, const secure::string& strPassword, std::vector<unsigned char>& salt, int& nDeriveIterations, std::vector<unsigned char>& cryptedKey)
+bool encryptRSAKey(const secure::string& psKeyData, const secure::string& psPassword, std::vector<unsigned char>& pvchSalt, int& pnDeriveIterations, std::vector<unsigned char>& pvchCryptedKey)
 {
-    salt.resize(8);
-    if (! RAND_pseudo_bytes(&salt[0], salt.size()))
+    pvchSalt.resize(8);
+    if (! RAND_pseudo_bytes(&pvchSalt[0], pvchSalt.size()))
         return false;
 
     unsigned char chKey[32];
@@ -62,15 +62,15 @@ bool encryptRSAKey(const secure::string& keyData, const secure::string& strPassw
     std::mt19937 rng(rd());
     std::uniform_int_distribution<int> uni(700000, 2000000);
 
-    nDeriveIterations = uni(rng);
+    pnDeriveIterations = uni(rng);
 
-    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &salt[0], (const unsigned char *)&strPassword[0], strPassword.size(), nDeriveIterations, chKey, chIV);
+    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &pvchSalt[0], (const unsigned char *)&psPassword[0], psPassword.size(), pnDeriveIterations, chKey, chIV);
 
     // max ciphertext len for a n bytes of plaintext is
     // n + AES_BLOCK_SIZE - 1 bytes
-    int nLen = keyData.size();
+    int nLen = psKeyData.size();
     int nCLen = nLen + AES_BLOCK_SIZE, nFLen = 0;
-    cryptedKey = std::vector<unsigned char> (nCLen);
+    pvchCryptedKey = std::vector<unsigned char> (nCLen);
 
     EVP_CIPHER_CTX ctx;
 
@@ -78,29 +78,29 @@ bool encryptRSAKey(const secure::string& keyData, const secure::string& strPassw
 
     EVP_CIPHER_CTX_init(&ctx);
     if (fOk) fOk = EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), nullptr, chKey, chIV) != 0;
-    if (fOk) fOk = EVP_EncryptUpdate(&ctx, (unsigned char*)&cryptedKey[0], &nCLen, (unsigned char*)&keyData[0], nLen) != 0;
-    if (fOk) fOk = EVP_EncryptFinal_ex(&ctx, ((unsigned char*)&cryptedKey[0]) + nCLen, &nFLen) != 0;
+    if (fOk) fOk = EVP_EncryptUpdate(&ctx, (unsigned char*)&pvchCryptedKey[0], &nCLen, (unsigned char*)&psKeyData[0], nLen) != 0;
+    if (fOk) fOk = EVP_EncryptFinal_ex(&ctx, ((unsigned char*)&pvchCryptedKey[0]) + nCLen, &nFLen) != 0;
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     if (!fOk) return false;
 
-    cryptedKey.resize(nCLen + nFLen);
+    pvchCryptedKey.resize(nCLen + nFLen);
     return true;
 }
 
-bool decryptRSAKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, secure::string& decryptedKey)
+bool decryptRSAKey(const std::vector<unsigned char>& pvchCryptedKey, const secure::string& psPassword, const std::vector<unsigned char>& pvchSalt, int pnDeriveIterations, secure::string& psDecryptedKey)
 {
     unsigned char chKey[32];
     unsigned char chIV[32];
 
-    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &salt[0],
-            (const unsigned char *)&strPassword[0], strPassword.size(), nDeriveIterations, chKey, chIV);
+    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &pvchSalt[0],
+            (const unsigned char *)&psPassword[0], psPassword.size(), pnDeriveIterations, chKey, chIV);
 
     // plaintext will always be equal to or lesser than length of ciphertext
-    int nLen = cryptedKey.size();
+    int nLen = pvchCryptedKey.size();
     int nPLen = nLen, nFLen = 0;
 
-    decryptedKey.resize(nLen);
+    psDecryptedKey.resize(nLen);
 
     EVP_CIPHER_CTX ctx;
 
@@ -108,29 +108,29 @@ bool decryptRSAKey(const std::vector<unsigned char>& cryptedKey, const secure::s
 
     EVP_CIPHER_CTX_init(&ctx);
     if (fOk) fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), nullptr, chKey, chIV) != 0;
-    if (fOk) fOk = EVP_DecryptUpdate(&ctx, (unsigned char*)&decryptedKey[0], &nPLen, &cryptedKey[0], nLen) != 0;
-    if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, (unsigned char*)&decryptedKey[0] + nPLen, &nFLen) != 0;
+    if (fOk) fOk = EVP_DecryptUpdate(&ctx, (unsigned char*)&psDecryptedKey[0], &nPLen, &pvchCryptedKey[0], nLen) != 0;
+    if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, (unsigned char*)&psDecryptedKey[0] + nPLen, &nFLen) != 0;
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     if (!fOk) return false;
 
-    decryptedKey.resize(nPLen + nFLen);
+    psDecryptedKey.resize(nPLen + nFLen);
 
     return true;
 }
 
-bool legacyDecryptKey(const std::vector<unsigned char>& cryptedKey, const secure::string& strPassword, const std::vector<unsigned char>& salt, int nDeriveIterations, ripple::SecretKey& secret)
+bool legacyDecryptKey(const std::vector<unsigned char>& pvchCryptedKey, const secure::string& psPassword, const std::vector<unsigned char>& pvchSalt, int pnDeriveIterations, ripple::SecretKey& prsSecret)
 {
     using namespace ripple;
 
     unsigned char chKey[32];
     unsigned char chIV[32];
 
-    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &salt[0],
-            (const unsigned char *)&strPassword[0], strPassword.size(), nDeriveIterations, chKey, chIV);
+    EVP_BytesToKey(EVP_aes_256_cbc(), EVP_sha512(), &pvchSalt[0],
+            (const unsigned char *)&psPassword[0], psPassword.size(), pnDeriveIterations, chKey, chIV);
 
     // plaintext will always be equal to or lesser than length of ciphertext
-    int nLen = cryptedKey.size();
+    int nLen = pvchCryptedKey.size();
     int nPLen = nLen, nFLen = 0;
 
     secure::secret decryptedKey;
@@ -142,23 +142,23 @@ bool legacyDecryptKey(const std::vector<unsigned char>& cryptedKey, const secure
 
     EVP_CIPHER_CTX_init(&ctx);
     if (fOk) fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), nullptr, chKey, chIV) != 0;
-    if (fOk) fOk = EVP_DecryptUpdate(&ctx, (unsigned char*)&decryptedKey[0], &nPLen, &cryptedKey[0], nLen) != 0;
+    if (fOk) fOk = EVP_DecryptUpdate(&ctx, (unsigned char*)&decryptedKey[0], &nPLen, &pvchCryptedKey[0], nLen) != 0;
     if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, (unsigned char*)&decryptedKey[0] + nPLen, &nFLen) != 0;
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     if (!fOk) return false;
 
     decryptedKey.resize(nPLen + nFLen);
-    secret = SecretKey(Slice(decryptedKey.data(), decryptedKey.size()));
+    prsSecret = SecretKey(Slice(decryptedKey.data(), decryptedKey.size()));
 
     return true;
 }
 
 //// Asymmetric encryption
 
-bool encryptSecretKey(const ripple::SecretKey& secret, const std::string& encryptionKey, std::vector<unsigned char>& encrypted)
+bool encryptSecretKey(const ripple::SecretKey& prsSecret, const std::string& psEncryptionKey, std::vector<unsigned char>& pvchEncryptedKey)
 {
-    BIO* bio = BIO_new_mem_buf((void*)&encryptionKey[0], -1) ; // -1: assume string is null terminated
+    BIO* bio = BIO_new_mem_buf((void*)&psEncryptionKey[0], -1) ; // -1: assume string is null terminated
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL) ; // NO NL
     // Load the RSA key from the BIO
     RSA* rsa_pub_key = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
@@ -169,22 +169,22 @@ bool encryptSecretKey(const ripple::SecretKey& secret, const std::string& encryp
         return false;
     }
 
-    encrypted.resize(RSA_size(rsa_pub_key));
-    std::fill(encrypted.begin(), encrypted.end(), 0);
+    pvchEncryptedKey.resize(RSA_size(rsa_pub_key));
+    std::fill(pvchEncryptedKey.begin(), pvchEncryptedKey.end(), 0);
 
-    int res = RSA_public_encrypt(secret.size(), secret.data(), &encrypted[0], rsa_pub_key, RSA_PKCS1_PADDING);
+    int nRes = RSA_public_encrypt(prsSecret.size(), prsSecret.data(), &pvchEncryptedKey[0], rsa_pub_key, RSA_PKCS1_PADDING);
 
     BIO_free(bio);
     CRYPTO_cleanup_all_ex_data();
 
-    return res > 0;
+    return nRes > 0;
 }
 
-bool decryptSecretKey(const std::vector<unsigned char>& encryptedSecret, const secure::string& decryptionKey, ripple::SecretKey& secretKey)
+bool decryptSecretKey(const std::vector<unsigned char>& pvchEncryptedSecret, const secure::string& psDecryptionKey, ripple::SecretKey& prsSecretKey)
 {
     using namespace ripple;
 
-    BIO *bio = BIO_new_mem_buf( (void*)&decryptionKey[0], -1 );
+    BIO *bio = BIO_new_mem_buf( (void*)&psDecryptionKey[0], -1 );
     //BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NL
     RSA* rsa_priv_key = PEM_read_bio_RSAPrivateKey(bio, NULL, NULL, NULL);
     if (!rsa_priv_key)
@@ -194,20 +194,20 @@ bool decryptSecretKey(const std::vector<unsigned char>& encryptedSecret, const s
         return false;
     }
 
-    int rsa_len = RSA_size(rsa_priv_key);
+    int nRsaLen = RSA_size(rsa_priv_key);
     secure::secret secretData;
-    secretData.resize(rsa_len);
+    secretData.resize(nRsaLen);
     std::fill(secretData.begin(), secretData.end(), 0);
 
-    int res_len = RSA_private_decrypt(secretData.size(), &encryptedSecret[0], &secretData[0], rsa_priv_key, RSA_PKCS1_PADDING);
+    int nResLen = RSA_private_decrypt(secretData.size(), &pvchEncryptedSecret[0], &secretData[0], rsa_priv_key, RSA_PKCS1_PADDING);
 
     BIO_free( bio ) ;
     CRYPTO_cleanup_all_ex_data();
 
-    if (res_len < 0)
+    if (nResLen < 0)
         return false;
 
-    secretKey = SecretKey(Slice(&secretData[0], res_len));
+    prsSecretKey = SecretKey(Slice(&secretData[0], nResLen));
 
     return true;
 }
