@@ -626,7 +626,7 @@ bool WalletMain::isNetworkAvailable()
     QEventLoop loop;
     connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
     loop.exec();
-    return reply->bytesAvailable();
+    return (reply->error() == QNetworkReply::NoError);
 }
 
 void WalletMain::socketConnect()
