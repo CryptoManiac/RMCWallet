@@ -471,27 +471,22 @@ Error WalletMain::askPassword()
     while (true)
     {
         EnterPassword pwDialog(this);
-        if (pwDialog.exec() == QDialog::Accepted) {
+        if (pwDialog.exec() != QDialog::Accepted)
+            return eNoPassword; // User refused to enter the password
 
-            bool fOk = true;
-            secure::string decryptionKey;
-            fOk = decryptRSAKey(vchCryptedMasterKey, pwDialog.getPassword(), vchDerivationSalt, nDeriveIterations, decryptionKey);
-            if (fOk)
-            {
-                fOk = decryptSecretKey(keyData.vchCryptedKey, decryptionKey, keyData.rsSecretKey);
-                fOk = fOk && (keyData.raAccountID == calcAccountID(keyData.rpPublicKey));
-            }
-
-            if (fOk) return eNone;
-
-            // Wrong password, try again
-            continue;
-        }
-        else
+        bool fOk = true;
+        secure::string decryptionKey;
+        fOk = decryptRSAKey(vchCryptedMasterKey, pwDialog.getPassword(), vchDerivationSalt, nDeriveIterations, decryptionKey);
+        if (fOk)
         {
-            // User refused to enter the password
-            return eNoPassword;
+            fOk = decryptSecretKey(keyData.vchCryptedKey, decryptionKey, keyData.rsSecretKey);
+            fOk = fOk && (keyData.raAccountID == calcAccountID(keyData.rpPublicKey));
         }
+
+        if (fOk) return eNone;
+
+        // Wrong password, try again
+        continue;
     }
 }
 
