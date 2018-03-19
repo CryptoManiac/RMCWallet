@@ -525,14 +525,22 @@ WalletMain::WalletMain(QWidget *parent) :
 void WalletMain::onConnectionError(QAbstractSocket::SocketError psError)
 {
     switch (psError) {
+    case QAbstractSocket::ConnectionRefusedError:
+    case QAbstractSocket::HostNotFoundError:
+    {
+        switch(psError) {
+        case QAbstractSocket::ConnectionRefusedError:
+            setOnline(false, "The connection was refused by the peer. Please try again later. ");
+            break;
+        case QAbstractSocket::HostNotFoundError:
+            setOnline(false, "The host was not found. Please check your internet connection settings.");
+            break;
+        }
+        nConnectAttempt += 4;
+        return;
+    }
     case QAbstractSocket::RemoteHostClosedError:
         setOnline(false, "Connection was closed by remote host.");
-        break;
-    case QAbstractSocket::HostNotFoundError:
-        setOnline(false, "The host was not found. Please check your internet connection settings.");
-        break;
-    case QAbstractSocket::ConnectionRefusedError:
-        setOnline(false, "The connection was refused by the peer. Please try again later. ");
         break;
     default:
         setOnline(false, QString("The following error occurred: %1.").arg(wSockConn.errorString()));
@@ -540,7 +548,6 @@ void WalletMain::onConnectionError(QAbstractSocket::SocketError psError)
 
     if (nConnectAttempt <= 3)
         doReconnect();
-
     nConnectAttempt++;
 }
 
@@ -617,27 +624,9 @@ WalletMain::~WalletMain()
     delete ui;
 }
 
-bool WalletMain::isNetworkAvailable()
-{
-    // Trying connect to google.com
-    QNetworkAccessManager nam;
-    QNetworkRequest req(QUrl("http://google.com"));
-    QNetworkReply *reply = nam.get(req);
-    QEventLoop loop;
-    connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
-    loop.exec();
-    return (reply->error() == QNetworkReply::NoError);
-}
-
 void WalletMain::socketConnect()
 {
     using namespace std;
-
-    if (! isNetworkAvailable()) {
-        setOnline(false, "No internet connection");
-        nConnectAttempt = 4;
-        return;
-    }
 
     // Connect to random RPC server
     vector<QString> servers = {"wss://connor.rmc.one:443/", "wss://kirk.rmc.one:443/", "wss://forrest.rmc.one:443/", "wss://archer.rmc.one:443/", "wss://lorca.rmc.one:443/"};

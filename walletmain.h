@@ -113,9 +113,6 @@ private:
     // Connect to random server
     void socketConnect();
 
-    // Check internet availability
-    bool isNetworkAvailable();
-
     // Update GUI to show new connection status
     void setOnline(bool pbFlag = true, const QString& psReason = "OK");
 
