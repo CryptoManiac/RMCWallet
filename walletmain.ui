@@ -108,10 +108,10 @@
        <widget class="QPushButton" name="sendButton">
         <property name="geometry">
          <rect>
-          <x>390</x>
-          <y>120</y>
-          <width>100</width>
-          <height>41</height>
+          <x>330</x>
+          <y>200</y>
+          <width>80</width>
+          <height>25</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -127,10 +127,10 @@
        <widget class="QLabel" name="receiverLabel">
         <property name="geometry">
          <rect>
-          <x>16</x>
-          <y>1</y>
-          <width>109</width>
-          <height>16</height>
+          <x>9</x>
+          <y>22</y>
+          <width>119</width>
+          <height>17</height>
          </rect>
         </property>
         <property name="text">
@@ -140,20 +140,20 @@
        <widget class="QLineEdit" name="receiverAddressEdit">
         <property name="geometry">
          <rect>
-          <x>139</x>
-          <y>1</y>
-          <width>471</width>
-          <height>21</height>
+          <x>134</x>
+          <y>22</y>
+          <width>491</width>
+          <height>25</height>
          </rect>
         </property>
        </widget>
        <widget class="QLabel" name="amountLabel">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>90</y>
-          <width>101</width>
-          <height>20</height>
+          <x>9</x>
+          <y>154</y>
+          <width>113</width>
+          <height>17</height>
          </rect>
         </property>
         <property name="text">
@@ -163,10 +163,10 @@
        <widget class="QLineEdit" name="amountToSend">
         <property name="geometry">
          <rect>
-          <x>140</x>
-          <y>90</y>
-          <width>121</width>
-          <height>21</height>
+          <x>134</x>
+          <y>154</y>
+          <width>142</width>
+          <height>25</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -182,10 +182,10 @@
        <widget class="QLabel" name="rmcLabel">
         <property name="geometry">
          <rect>
-          <x>280</x>
-          <y>90</y>
-          <width>29</width>
-          <height>20</height>
+          <x>310</x>
+          <y>160</y>
+          <width>32</width>
+          <height>17</height>
          </rect>
         </property>
         <property name="text">
@@ -195,10 +195,10 @@
        <widget class="QPushButton" name="clearButton">
         <property name="geometry">
          <rect>
-          <x>170</x>
-          <y>120</y>
-          <width>100</width>
-          <height>41</height>
+          <x>134</x>
+          <y>198</y>
+          <width>80</width>
+          <height>25</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -214,10 +214,10 @@
        <widget class="QPushButton" name="previewButton">
         <property name="geometry">
          <rect>
-          <x>280</x>
-          <y>120</y>
-          <width>100</width>
-          <height>41</height>
+          <x>230</x>
+          <y>200</y>
+          <width>80</width>
+          <height>25</height>
          </rect>
         </property>
         <property name="maximumSize">
@@ -233,10 +233,10 @@
        <widget class="QLabel" name="destinationTagLabel">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>30</y>
-          <width>111</width>
-          <height>20</height>
+          <x>9</x>
+          <y>66</y>
+          <width>109</width>
+          <height>17</height>
          </rect>
         </property>
         <property name="text">
@@ -246,10 +246,10 @@
        <widget class="QLineEdit" name="destinationTag">
         <property name="geometry">
          <rect>
-          <x>140</x>
-          <y>30</y>
-          <width>171</width>
-          <height>21</height>
+          <x>134</x>
+          <y>66</y>
+          <width>231</width>
+          <height>25</height>
          </rect>
         </property>
         <property name="text">
@@ -262,10 +262,10 @@
        <widget class="QLabel" name="sendTransactionFeeLabel">
         <property name="geometry">
          <rect>
-          <x>20</x>
-          <y>60</y>
-          <width>111</width>
-          <height>16</height>
+          <x>9</x>
+          <y>110</y>
+          <width>109</width>
+          <height>17</height>
          </rect>
         </property>
         <property name="text">
@@ -275,10 +275,10 @@
        <widget class="QLineEdit" name="sendTransactionFeeValue">
         <property name="geometry">
          <rect>
-          <x>140</x>
-          <y>60</y>
-          <width>121</width>
-          <height>21</height>
+          <x>134</x>
+          <y>110</y>
+          <width>142</width>
+          <height>25</height>
          </rect>
         </property>
         <property name="placeholderText">
@@ -288,10 +288,10 @@
        <widget class="QLabel" name="rmcLabel_2">
         <property name="geometry">
          <rect>
-          <x>280</x>
-          <y>60</y>
-          <width>29</width>
-          <height>20</height>
+          <x>310</x>
+          <y>110</y>
+          <width>32</width>
+          <height>17</height>
          </rect>
         </property>
         <property name="text">
@@ -407,14 +407,6 @@
      </widget>
     </item>
    </layout>
-  </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
   </widget>
   <widget class="QStatusBar" name="statusBar"/>
   <widget class="QMenuBar" name="menuBar">
