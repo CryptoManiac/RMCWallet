@@ -9,7 +9,7 @@
 
 inline static QString timeFormat(int64_t nTime)
 {
-    return QDateTime::fromTime_t(946684800 + nTime).toString("dd/MM/yyyy hh:mm:ss");
+    return QDateTime::fromSecsSinceEpoch(946684800 + nTime).toString("dd/MM/yyyy hh:mm:ss");
 }
 
 inline static QString AmountWithSign(int64_t nAmount, bool isDebit = false, QString strCurrency = "RMC")
