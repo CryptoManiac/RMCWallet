@@ -61,7 +61,7 @@ unix {
 
     linux {
         # Linuxism
-        LIBS += -lrt
+        LIBS += -lrt -ldl
     }
 }
 
