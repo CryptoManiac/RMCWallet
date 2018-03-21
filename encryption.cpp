@@ -5,6 +5,7 @@
 #include <openssl/evp.h>
 #include <openssl/rand.h>
 #include <openssl/aes.h>
+
 #include <random>
 
 bool generateRSAKeys(secure::string& psPrivKey, std::string& psPubKey)
@@ -13,7 +14,7 @@ bool generateRSAKeys(secure::string& psPrivKey, std::string& psPubKey)
      BIGNUM *pbnExponent = BN_new();
      BN_set_word(pbnExponent, RSA_F4);
 
-     int nRes = RSA_generate_key_ex (prKeyPair, 4096, pbnExponent, NULL);
+     int nRes = RSA_generate_key_ex (prKeyPair, 4096, pbnExponent, nullptr);
 
      if (nRes == 0)
      {
@@ -26,7 +27,7 @@ bool generateRSAKeys(secure::string& psPrivKey, std::string& psPubKey)
      BIO *pri = BIO_new(BIO_s_mem());
      BIO *pub = BIO_new(BIO_s_mem());
 
-     PEM_write_bio_RSAPrivateKey(pri, prKeyPair, NULL, NULL, 0, NULL, NULL);
+     PEM_write_bio_RSAPrivateKey(pri, prKeyPair, nullptr, nullptr, 0, nullptr, nullptr);
      PEM_write_bio_RSAPublicKey(pub, prKeyPair);
 
      size_t nPriLen = BIO_pending(pri);
@@ -78,8 +79,8 @@ bool encryptRSAKey(const secure::string& psKeyData, const secure::string& psPass
 
     EVP_CIPHER_CTX_init(&ctx);
     if (fOk) fOk = EVP_EncryptInit_ex(&ctx, EVP_aes_256_cbc(), nullptr, chKey, chIV) != 0;
-    if (fOk) fOk = EVP_EncryptUpdate(&ctx, (unsigned char*)&pvchCryptedKey[0], &nCLen, (unsigned char*)&psKeyData[0], nLen) != 0;
-    if (fOk) fOk = EVP_EncryptFinal_ex(&ctx, ((unsigned char*)&pvchCryptedKey[0]) + nCLen, &nFLen) != 0;
+    if (fOk) fOk = EVP_EncryptUpdate(&ctx, &pvchCryptedKey[0], &nCLen, (const unsigned char*)&psKeyData[0], nLen) != 0;
+    if (fOk) fOk = EVP_EncryptFinal_ex(&ctx, &pvchCryptedKey[0] + nCLen, &nFLen) != 0;
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     if (!fOk) return false;
@@ -142,8 +143,8 @@ bool legacyDecryptKey(const std::vector<unsigned char>& pvchCryptedKey, const se
 
     EVP_CIPHER_CTX_init(&ctx);
     if (fOk) fOk = EVP_DecryptInit_ex(&ctx, EVP_aes_256_cbc(), nullptr, chKey, chIV) != 0;
-    if (fOk) fOk = EVP_DecryptUpdate(&ctx, (unsigned char*)&decryptedKey[0], &nPLen, &pvchCryptedKey[0], nLen) != 0;
-    if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, (unsigned char*)&decryptedKey[0] + nPLen, &nFLen) != 0;
+    if (fOk) fOk = EVP_DecryptUpdate(&ctx, &decryptedKey[0], &nPLen, &pvchCryptedKey[0], nLen) != 0;
+    if (fOk) fOk = EVP_DecryptFinal_ex(&ctx, &decryptedKey[0] + nPLen, &nFLen) != 0;
     EVP_CIPHER_CTX_cleanup(&ctx);
 
     if (!fOk) return false;
@@ -158,10 +159,10 @@ bool legacyDecryptKey(const std::vector<unsigned char>& pvchCryptedKey, const se
 
 bool encryptSecretKey(const ripple::SecretKey& prsSecret, const std::string& psEncryptionKey, std::vector<unsigned char>& pvchEncryptedKey)
 {
-    BIO* bio = BIO_new_mem_buf((void*)&psEncryptionKey[0], -1) ; // -1: assume string is null terminated
+    BIO* bio = BIO_new_mem_buf((const void*)&psEncryptionKey[0], -1) ; // -1: assume string is null terminated
     BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL) ; // NO NL
     // Load the RSA key from the BIO
-    RSA* rsa_pub_key = PEM_read_bio_RSAPublicKey(bio, NULL, NULL, NULL);
+    RSA* rsa_pub_key = PEM_read_bio_RSAPublicKey(bio, nullptr, nullptr, nullptr);
     if(!rsa_pub_key)
     {
         BIO_free(bio);
@@ -184,9 +185,9 @@ bool decryptSecretKey(const std::vector<unsigned char>& pvchEncryptedSecret, con
 {
     using namespace ripple;
 
-    BIO *bio = BIO_new_mem_buf( (void*)&psDecryptionKey[0], -1 );
+    BIO *bio = BIO_new_mem_buf( (const void*)&psDecryptionKey[0], -1 );
     //BIO_set_flags(bio, BIO_FLAGS_BASE64_NO_NL); // NO NL
-    RSA* rsa_priv_key = PEM_read_bio_RSAPrivateKey(bio, NULL, NULL, NULL);
+    RSA* rsa_priv_key = PEM_read_bio_RSAPrivateKey(bio, nullptr, nullptr, nullptr);
     if (!rsa_priv_key)
     {
         BIO_free( bio ) ;
