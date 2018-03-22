@@ -833,7 +833,7 @@ void WalletMain::processLedgerMessage(QJsonObject poLedger)
     setOnline(true, QString("ledger %1 closed").arg(sHash.left(6)));
 }
 
-void WalletMain::accInfoResponse(QJsonObject poResp)
+void WalletMain::accInfoResponse(const QJsonObject& poResp)
 {
     auto result = poResp["result"].toObject();
     auto accountData = result["account_data"].toObject();
@@ -849,7 +849,7 @@ void WalletMain::accInfoResponse(QJsonObject poResp)
     setOnline(true, "Account info retrieved");
 }
 
-void WalletMain::accTxResponse(QJsonObject poResp)
+void WalletMain::accTxResponse(const QJsonObject& poResp)
 {
     QJsonObject result = poResp["result"].toObject();
     QJsonArray txes = result["transactions"].toArray();
@@ -908,7 +908,7 @@ void WalletMain::refreshTxView()
     }
 }
 
-void WalletMain::submitResponse(QJsonObject poResp)
+void WalletMain::submitResponse(const QJsonObject& poResp)
 {
     QJsonObject result = poResp["result"].toObject();
 
@@ -920,7 +920,7 @@ void WalletMain::submitResponse(QJsonObject poResp)
         Show("Transaction applied", result["engine_result_message"].toString(), E_INFO);
 }
 
-void WalletMain::subsLedgerAndAccountResponse(QJsonObject poResp)
+void WalletMain::subsLedgerAndAccountResponse(const QJsonObject& poResp)
 {
     QJsonObject result = poResp["result"].toObject();
 
