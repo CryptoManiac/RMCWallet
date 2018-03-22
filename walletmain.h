@@ -119,10 +119,10 @@ private:
 
     // Response handlers
 
-    void accInfoResponse(QJsonObject poResp);
-    void accTxResponse(QJsonObject poResp);
-    void submitResponse(QJsonObject poResp);
-    void subsLedgerAndAccountResponse(QJsonObject poResp);
+    void accInfoResponse(const QJsonObject& poResp);
+    void accTxResponse(const QJsonObject& poResp);
+    void submitResponse(const QJsonObject& poResp);
+    void subsLedgerAndAccountResponse(const QJsonObject& poResp);
 
     // Request handlers
     void accInfoRequest(QJsonArray poAccs = {});
