@@ -17,7 +17,7 @@ extern Error eNone;
 extern Error eNoPassword;
 extern Error eNoWif;
 
+void Show(const QString& psCaption, const QString& psMsg, const ErrorType&);
 void Show(const Error& peErr);
-void Show(const QString& psCaption, const QString& psMsg, ErrorType);
 
 #endif // ERRORS_H
