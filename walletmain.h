@@ -69,6 +69,7 @@ private Q_SLOTS:
 
 
     void on_actionSwitch_account_triggered();
+    void on_actionProxy_triggered();
 
 private:
     // Client UI pointer
