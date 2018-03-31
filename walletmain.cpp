@@ -21,6 +21,7 @@
 #include "enterpassword.h"
 #include "aboutdialog.h"
 #include "switchaccount.h"
+#include "proxysettings.h"
 #include "format.h"
 
 #include <ripple/protocol/AccountID.h>
@@ -1215,6 +1216,16 @@ void WalletMain::on_actionSwitch_account_triggered()
        //accInfoRequest();
        //accTxRequest();
     }
+}
+
+void WalletMain::on_actionProxy_triggered()
+{
+    ProxySettings proxysettings(this);
+    if (proxysettings.exec() == QDialog::Accepted)
+    {
+        proxysettings.updateProxy();
+        doReconnect();
+    };
 }
 
 // Entry point

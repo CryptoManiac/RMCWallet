@@ -119,7 +119,8 @@ SOURCES += \
     aboutdialog.cpp \
     txtable.cpp \
     switchaccount.cpp \
-    errors.cpp
+    errors.cpp \
+    proxysettings.cpp
 
 HEADERS += walletmain.h \
     doublevalidator.h \
@@ -135,7 +136,8 @@ HEADERS += walletmain.h \
     switchaccount.h \
     errors.h \
     secure.h \
-    format.h
+    format.h \
+    proxysettings.h
 
 
 FORMS += walletmain.ui \
@@ -144,7 +146,8 @@ FORMS += walletmain.ui \
     enterpassword.ui \
     transactionview.ui \
     aboutdialog.ui \
-    switchaccount.ui
+    switchaccount.ui \
+    proxysettings.ui
 
 macx:ICON = RMC.icns
 win32:RC_ICONS += RMC.ico
