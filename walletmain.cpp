@@ -536,6 +536,8 @@ void WalletMain::onConnectionError(QAbstractSocket::SocketError psError)
         case QAbstractSocket::HostNotFoundError:
             setOnline(false, "The host was not found. Please check your internet connection settings.");
             break;
+        default:
+            setOnline(false, QString("The following error occurred: %1.").arg(wSockConn.errorString()));
         }
         nConnectAttempt += 4;
         return;
