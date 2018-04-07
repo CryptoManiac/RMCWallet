@@ -373,7 +373,6 @@ void WalletMain::saveKeys(bool pbOverwrite)
         keyFile.open(QIODevice::WriteOnly | QIODevice::Text);
         QByteArray arrZeros(keyFile.size(), '0');
         keyFile.write(arrZeros, arrZeros.size());
-        keyFile.flush();
         keyFile.close();
     }
 
