@@ -23,6 +23,7 @@
 #include "switchaccount.h"
 #include "proxysettings.h"
 #include "format.h"
+#include "iniworker.h"
 
 #include <ripple/protocol/AccountID.h>
 #include <ripple/protocol/PublicKey.h>
@@ -1219,12 +1220,15 @@ void WalletMain::on_actionSwitch_account_triggered()
     }
 }
 
+CIniworker RMCSettings;
+
 void WalletMain::on_actionProxy_triggered()
 {
     ProxySettings proxysettings(this);
     if (proxysettings.exec() == QDialog::Accepted)
     {
         proxysettings.updateProxy();
+        RMCSettings.Write(CIniworker::W_PROXY);
         doReconnect();
     };
 }
@@ -1233,6 +1237,8 @@ void WalletMain::on_actionProxy_triggered()
 
 int main(int argc, char *argv[])
 {
+    RMCSettings.Read(CIniworker::R_PROXY);
+
     QApplication a(argc, argv);
     WalletMain w;
     w.show();

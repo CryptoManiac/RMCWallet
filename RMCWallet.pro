@@ -120,7 +120,8 @@ SOURCES += \
     txtable.cpp \
     switchaccount.cpp \
     errors.cpp \
-    proxysettings.cpp
+    proxysettings.cpp \
+    iniworker.cpp
 
 HEADERS += walletmain.h \
     doublevalidator.h \
@@ -137,7 +138,8 @@ HEADERS += walletmain.h \
     errors.h \
     secure.h \
     format.h \
-    proxysettings.h
+    proxysettings.h \
+    iniworker.h
 
 
 FORMS += walletmain.ui \
