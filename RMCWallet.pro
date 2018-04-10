@@ -123,7 +123,8 @@ SOURCES += \
     proxysettings.cpp \
     iniworker.cpp
 
-HEADERS += walletmain.h \
+HEADERS += watchdog.h \
+    walletmain.h \
     doublevalidator.h \
     transactionpreview.h \
     msgkind.h \
@@ -140,7 +141,6 @@ HEADERS += walletmain.h \
     format.h \
     proxysettings.h \
     iniworker.h
-
 
 FORMS += walletmain.ui \
     transactionpreview.ui \

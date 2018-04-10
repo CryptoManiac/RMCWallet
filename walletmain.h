@@ -1,6 +1,8 @@
 #ifndef WALLETMAIN_H
 #define WALLETMAIN_H
 
+#include "watchdog.h"
+
 #include <QMainWindow>
 #include <QLabel>
 #include <QtWebSockets/QWebSocket>
