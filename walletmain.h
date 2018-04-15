@@ -8,7 +8,6 @@
 #include <QtWebSockets/QWebSocket>
 #include <QtNetwork/QSslError>
 #include <QtCore/QList>
-#include <QtCore/QString>
 #include <QtCore/QUrl>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -16,25 +15,14 @@
 #include <QMenu>
 
 #include <ripple/protocol/PublicKey.h>
-#include <ripple/protocol/SecretKey.h>
 
 #include "encryption.h"
 #include "errors.h"
+#include "msgkind.h"
 
 namespace Ui {
 class WalletMain;
 }
-
-#include "msgkind.h"
-
-struct KeyData {
-    ripple::SecretKey rsSecretKey;
-    ripple::PublicKey rpPublicKey;
-    std::vector<unsigned char> vchCryptedKey;
-    ripple::AccountID raAccountID;
-};
-
-typedef std::vector<std::vector<QString> > TxVector;
 
 class WalletMain : public QMainWindow
 {
@@ -69,11 +57,19 @@ private Q_SLOTS:
     // Transaction history actions
     void txItemClicked(int pnRow, int pnCol);
 
-
     void on_actionSwitch_account_triggered();
     void on_actionProxy_triggered();
 
 private:
+    struct KeyData {
+        ripple::SecretKey rsSecretKey;
+        ripple::PublicKey rpPublicKey;
+        std::vector<unsigned char> vchCryptedKey;
+        ripple::AccountID raAccountID;
+    };
+
+    typedef std::vector<std::vector<QString> > TxVector;
+
     // Client UI pointer
     Ui::WalletMain *ui;
 
