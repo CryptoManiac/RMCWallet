@@ -5,6 +5,8 @@
 #include <QLocale>
 #include <QLineEdit>
 
+#include "money.h"
+
 // Helpers
 
 inline static QString timeFormat(int64_t nTime)
@@ -14,12 +16,12 @@ inline static QString timeFormat(int64_t nTime)
 
 inline static QString AmountWithSign(int64_t nAmount, bool isDebit = false, QString strCurrency = "RMC")
 {
-    return QString("%1%2 %3").arg(isDebit ? "-" : "").arg(QString::number ( nAmount / 1000000.0, 'f', 6 )).arg(strCurrency);
+    return QString("%1%2 %3").arg(isDebit ? "-" : "").arg(QString::number ( nAmount / coinAsDouble, 'f', 6 )).arg(strCurrency);
 }
 
 inline static QString Amount(int64_t nAmount)
 {
-    return QString::number ( nAmount / 1000000.0, 'f', 6 );
+    return QString::number ( nAmount / coinAsDouble, 'f', 6 );
 }
 
 inline static int64_t readInt(QLineEdit* lineEdit)

@@ -140,7 +140,8 @@ HEADERS += watchdog.h \
     secure.h \
     format.h \
     proxysettings.h \
-    iniworker.h
+    iniworker.h \
+    money.h
 
 FORMS += walletmain.ui \
     transactionpreview.ui \
