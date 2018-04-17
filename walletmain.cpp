@@ -1007,9 +1007,9 @@ void WalletMain::sendPayment(bool pbJustAsk)
 
     QString sHex, sJSON;
     QString sRecvAcc = ui->receiverAddressEdit->text();
-    int64_t nAmount = readDouble(ui->amountToSend) * 1000000;
+    int64_t nAmount = readDouble(ui->amountToSend) * coinAsInt;
     int64_t nTagID = readInt(ui->destinationTag);
-    int64_t nTxFee = readDouble(ui->sendTransactionFeeValue) * 1000000;
+    int64_t nTxFee = readDouble(ui->sendTransactionFeeValue) * coinAsInt;
     if (nTxFee == 0) nTxFee = nFeeRef;
 
     if (nAmount > (vnBalances[nMainAccount] - nTxFee - nReserve))
