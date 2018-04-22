@@ -66,6 +66,12 @@
            <property name="text">
             <string>Type</string>
            </property>
+           <property name="toolTip">
+            <string>Transaction type</string>
+           </property>
+           <property name="whatsThis">
+            <string>Transaction type</string>
+           </property>
           </column>
           <column>
            <property name="text">
