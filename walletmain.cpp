@@ -1062,8 +1062,7 @@ void WalletMain::txItemClicked(int pnRow, int pnCol)
 {
     Q_UNUSED(pnCol);
 
-    QTableWidgetItem *item = new QTableWidgetItem;
-    item = ui->txView->item(pnRow, 4);
+    auto *item = ui->txView->item(pnRow, 4);
     TransactionView txDlg(nullptr, item->text());
     txDlg.exec();
 }
