@@ -19,6 +19,9 @@ TransactionView::TransactionView(QWidget *parent, const QString& txJson) :
     Tx.insert("Amount", Amount(Tx["Amount"].toString().toLongLong()));
     Tx.insert("Fee", Amount(Tx["Fee"].toString().toLongLong()));
     Tx.insert("date", timeFormat(Tx["date"].toDouble()));
+    if (static_cast<uint32_t>(Tx["Flags"].toDouble()) == 0x80000000u)
+        Tx.insert("Flags", "tfFullyCanonicalSig");
+    else Tx.insert("Flags", "todo: fix output");
     TxRec.setObject(Tx);
     txJsonHumanView = TxRec.toJson(QJsonDocument::Indented);
     txJsonRawView = txJson;
