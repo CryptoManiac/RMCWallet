@@ -487,11 +487,6 @@ WalletMain::WalletMain(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::WalletMain)
 {
-
-#ifdef QT_NO_SSL
-#error "SSL support is required"
-#endif
-
     QString sAccID;
     auto eRes = loadWallet(sAccID);
     if ( eNone != eRes && eNoneCallReqHandlers != eRes)
