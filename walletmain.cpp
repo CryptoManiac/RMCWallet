@@ -255,7 +255,7 @@ Error WalletMain::convertLegacyWallet(const QJsonObject& poKey)
 }
 
 
-Error WalletMain::loadWallet()
+Error WalletMain::loadWallet(QString &psAccID)
 {
     using namespace ripple;
 
@@ -267,13 +267,13 @@ Error WalletMain::loadWallet()
     {
         // Brand new wallet
         ImportDialog importReq;
-        QString sAccID;
         while (true)
         {
+            Error eRes;
             // Ask user to import his WIF formatted key
             if (importReq.exec() == QDialog::Accepted)
             {
-                auto eRes = importKey(importReq.getKeyData(), sAccID);
+                eRes = importKey(importReq.getKeyData(), psAccID);
                 if (eNoWif == eRes)
                     continue; // Incorrect WIF string entered, ask user again
                 if( eNone != eRes)
@@ -281,14 +281,14 @@ Error WalletMain::loadWallet()
             }
             else
             {
-                auto eRes = newKey(sAccID); // User refused, generating new private key
+                eRes = newKey(psAccID); // User refused, generating new private key
                 if (eNone != eRes)
                     Show(eRes);
             }
             break;
         }
 
-        return eNone;
+        return eNoneCallReqHandlers;
     }
     else
     {
@@ -406,10 +406,6 @@ Error WalletMain::newKey(QString& psNewAccID)
     vtTransactions.push_back(TxVector());
     saveKeys();
 
-    accInfoRequest({ psNewAccID });
-    accTxRequest({ psNewAccID });
-    subsLedgerAndAccountRequest();
-
     return eNone;
 }
 
@@ -443,10 +439,6 @@ Error WalletMain::importKey(const secure::string& psKey, QString& psNewAccID)
     vnSequences.push_back(0);
     vtTransactions.push_back(TxVector());
     saveKeys();
-
-    accInfoRequest({ psNewAccID });
-    accTxRequest({ psNewAccID });
-    subsLedgerAndAccountRequest();
 
     return eNone;
 }
@@ -500,13 +492,19 @@ WalletMain::WalletMain(QWidget *parent) :
 #error "SSL support is required"
 #endif
 
-    auto eRes = loadWallet();
-    if ( eNone != eRes)
+    QString sAccID;
+    auto eRes = loadWallet(sAccID);
+    if ( eNone != eRes && eNoneCallReqHandlers != eRes)
     {
         if (eRes != eNoPassword)
             Show(eRes);
         QTimer::singleShot(250, qApp, SLOT(quit()));
         return;
+    }
+    if ( eNoneCallReqHandlers == eRes ) {
+        accInfoRequest({ sAccID });
+        accTxRequest({ sAccID });
+        subsLedgerAndAccountRequest();
     }
 
     ui->setupUi(this);
@@ -1105,6 +1103,11 @@ void WalletMain::on_actionImport_key_triggered()
             continue; // Incorrect WIF string, ask user again
         if (eNone != eRes)
             return Show(eRes);
+        else {
+            accInfoRequest({ newAccountID });
+            accTxRequest({ newAccountID });
+            subsLedgerAndAccountRequest();
+        }
     }
 
     Show("Import", QString("Key import was done successfully and account %1 has been created.").arg(newAccountID), E_INFO);
@@ -1116,8 +1119,12 @@ void WalletMain::on_actionGenerateNew_triggered()
     {
         QString newAccountID;
         auto eRes = newKey(newAccountID);
-        if (eNone != eRes)
-            return Show(eRes);
+        if (eNone != eRes) return Show(eRes);
+        else {
+            accInfoRequest({ newAccountID });
+            accTxRequest({ newAccountID });
+            subsLedgerAndAccountRequest();
+        }
         Show("Success", QString("Your new account %1 has been generated and saved successfully.").arg(newAccountID), E_INFO);
     }
 }

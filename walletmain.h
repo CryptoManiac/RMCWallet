@@ -130,7 +130,7 @@ private:
     void subsLedgerAndAccountRequest();
 
     // Key management
-    Error loadWallet();
+    Error loadWallet(QString& psAccID);
     Error processWalletEntry(const QJsonObject& poKey, KeyData& pkData);
     Error processWallet(const QJsonObject& poKey);
     Error convertLegacyWallet(const QJsonObject& poKey);
