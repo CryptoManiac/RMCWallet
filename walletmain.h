@@ -19,6 +19,7 @@
 #include "encryption.h"
 #include "errors.h"
 #include "msgkind.h"
+#include "keymanagement.h"
 
 namespace Ui {
 class WalletMain;
@@ -61,12 +62,6 @@ private Q_SLOTS:
     void on_actionProxy_triggered();
 
 private:
-    struct KeyData {
-        ripple::SecretKey rsSecretKey;
-        ripple::PublicKey rpPublicKey;
-        std::vector<unsigned char> vchCryptedKey;
-        ripple::AccountID raAccountID;
-    };
 
     typedef std::vector<std::vector<QString> > TxVector;
 
@@ -130,7 +125,7 @@ private:
     void subsLedgerAndAccountRequest();
 
     // Key management
-    Error loadWallet();
+    Error loadWallet(QString& psAccID);
     Error processWalletEntry(const QJsonObject& poKey, KeyData& pkData);
     Error processWallet(const QJsonObject& poKey);
     Error convertLegacyWallet(const QJsonObject& poKey);

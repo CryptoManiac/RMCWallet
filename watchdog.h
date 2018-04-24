@@ -9,4 +9,8 @@
 #if __cplusplus < 201402L
 #    error "Use c++14 or greater"
 #endif
+#ifdef QT_NO_SSL
+#    error "SSL support is required"
+#endif
+
 #endif // WATCHDOG_H

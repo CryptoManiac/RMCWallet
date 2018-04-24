@@ -3,6 +3,7 @@
 #include <tuple>
 
 Error eNone = Error(E_NONE, "none", "none");
+Error eNoneCallReqHandlers = Error(E_NONE, "call request handlers", "call request handlers");
 Error eNoPassword = Error(E_NONE, "password", "password");
 Error eNoWif = Error(E_NONE, "wif", "wif");
 

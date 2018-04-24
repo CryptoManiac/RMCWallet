@@ -14,6 +14,7 @@ enum ErrorType
 typedef std::tuple<ErrorType, QString, QString> Error;
 
 extern Error eNone;
+extern Error eNoneCallReqHandlers;
 extern Error eNoPassword;
 extern Error eNoWif;
 
