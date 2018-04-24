@@ -121,7 +121,8 @@ SOURCES += \
     switchaccount.cpp \
     errors.cpp \
     proxysettings.cpp \
-    iniworker.cpp
+    iniworker.cpp \
+    keymanagement.cpp
 
 HEADERS += watchdog.h \
     walletmain.h \
@@ -141,7 +142,8 @@ HEADERS += watchdog.h \
     format.h \
     proxysettings.h \
     iniworker.h \
-    money.h
+    money.h \
+    keymanagement.h
 
 FORMS += walletmain.ui \
     transactionpreview.ui \

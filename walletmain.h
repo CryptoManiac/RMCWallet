@@ -19,6 +19,7 @@
 #include "encryption.h"
 #include "errors.h"
 #include "msgkind.h"
+#include "keymanagement.h"
 
 namespace Ui {
 class WalletMain;
@@ -61,12 +62,6 @@ private Q_SLOTS:
     void on_actionProxy_triggered();
 
 private:
-    struct KeyData {
-        ripple::SecretKey rsSecretKey;
-        ripple::PublicKey rpPublicKey;
-        std::vector<unsigned char> vchCryptedKey;
-        ripple::AccountID raAccountID;
-    };
 
     typedef std::vector<std::vector<QString> > TxVector;
 
