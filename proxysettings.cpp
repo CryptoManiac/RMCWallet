@@ -48,6 +48,6 @@ void ProxySettings::updateProxy()
     default: {}; // 0 NoProxy
     }
     proxy.setHostName(ui->lineProxyAddress->text());
-    proxy.setPort(ui->lineProxyPort->text().toShort());
+    proxy.setPort(ui->lineProxyPort->text().toUShort());
     QNetworkProxy::setApplicationProxy(proxy);
 }
