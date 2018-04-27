@@ -269,11 +269,10 @@ Error WalletMain::loadWallet(QString &psAccID)
         ImportDialog importReq;
         while (true)
         {
-            Error eRes;
             // Ask user to import his WIF formatted key
             if (importReq.exec() == QDialog::Accepted)
             {
-                eRes = importKey(importReq.getKeyData(), psAccID);
+                auto eRes = importKey(importReq.getKeyData(), psAccID);
                 if (eNoWif == eRes)
                     continue; // Incorrect WIF string entered, ask user again
                 if( eNone != eRes)
@@ -281,7 +280,7 @@ Error WalletMain::loadWallet(QString &psAccID)
             }
             else
             {
-                eRes = newKey(psAccID); // User refused, generating new private key
+                auto eRes = newKey(psAccID); // User refused, generating new private key
                 if (eNone != eRes)
                     Show(eRes);
             }

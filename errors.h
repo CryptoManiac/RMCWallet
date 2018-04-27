@@ -11,7 +11,7 @@ enum ErrorType
     E_FATAL=2
 };
 
-typedef std::tuple<ErrorType, QString, QString> Error;
+typedef const std::tuple<ErrorType, QString, QString> Error;
 
 extern Error eNone;
 extern Error eNoneCallReqHandlers;
