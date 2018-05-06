@@ -611,6 +611,8 @@ void WalletMain::setupControls(QWidget *parent)
     ui->txView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->actionEncrypt_wallet->setDisabled(vkStore[nMainAccount].vchCryptedKey.size() != 0);
 
+    ui->amountToSend->setToolTip(QString("Use  as decimal point character").insert(4, QLocale::system().decimalPoint()));
+
     connect(ui->txView, SIGNAL(cellDoubleClicked(int,int)), this, SLOT(txItemClicked(int,int)));
 }
 
