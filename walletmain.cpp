@@ -269,11 +269,10 @@ Error WalletMain::loadWallet(QString &psAccID)
         ImportDialog importReq;
         while (true)
         {
-            Error eRes;
             // Ask user to import his WIF formatted key
             if (importReq.exec() == QDialog::Accepted)
             {
-                eRes = importKey(importReq.getKeyData(), psAccID);
+                auto eRes = importKey(importReq.getKeyData(), psAccID);
                 if (eNoWif == eRes)
                     continue; // Incorrect WIF string entered, ask user again
                 if( eNone != eRes)
@@ -281,7 +280,7 @@ Error WalletMain::loadWallet(QString &psAccID)
             }
             else
             {
-                eRes = newKey(psAccID); // User refused, generating new private key
+                auto eRes = newKey(psAccID); // User refused, generating new private key
                 if (eNone != eRes)
                     Show(eRes);
             }
@@ -611,6 +610,8 @@ void WalletMain::setupControls(QWidget *parent)
     ui->txView->setSelectionBehavior(QAbstractItemView::SelectRows);
     ui->txView->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
     ui->actionEncrypt_wallet->setDisabled(vkStore[nMainAccount].vchCryptedKey.size() != 0);
+
+    ui->amountToSend->setToolTip(QString("Use  as decimal point character").insert(4, QLocale::system().decimalPoint()));
 
     connect(ui->txView, SIGNAL(cellDoubleClicked(int,int)), this, SLOT(txItemClicked(int,int)));
 }
