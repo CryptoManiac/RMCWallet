@@ -7,6 +7,7 @@
 #include <openssl/aes.h>
 
 #include <random>
+#include <cassert>
 
 bool generateRSAKeys(secure::string& psPrivKey, std::string& psPubKey)
 {
@@ -172,13 +173,15 @@ bool encryptSecretKey(const ripple::SecretKey& prsSecret, const std::string& psE
 
     pvchEncryptedKey.resize(RSA_size(rsa_pub_key));
     std::fill(pvchEncryptedKey.begin(), pvchEncryptedKey.end(), 0);
+    std::vector<unsigned char> vguard(pvchEncryptedKey.size(), 0);
 
     int nRes = RSA_public_encrypt(prsSecret.size(), prsSecret.data(), &pvchEncryptedKey[0], rsa_pub_key, RSA_PKCS1_PADDING);
+    assert(vguard != pvchEncryptedKey);
 
     BIO_free(bio);
     CRYPTO_cleanup_all_ex_data();
 
-    return nRes > 0;
+    return (nRes > 0) && (nRes == RSA_size(rsa_pub_key));
 }
 
 bool decryptSecretKey(const std::vector<unsigned char>& pvchEncryptedSecret, const secure::string& psDecryptionKey, ripple::SecretKey& prsSecretKey)
