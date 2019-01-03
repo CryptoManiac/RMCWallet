@@ -23,8 +23,8 @@ CONFIG += c++14
 
 #QMAKE_CXXFLAGS = -std=c++14
 
-BOOST_INCLUDE_PATH=../boost_1_66_0/include
-BOOST_LIB_PATH=../boost_1_66_0/lib
+BOOST_INCLUDE_PATH=../boost_1_68_0/include
+BOOST_LIB_PATH=../boost_1_68_0/lib
 BOOST_SUFFIX=
 
 OPENSSL_INCLUDE_PATH=
@@ -34,17 +34,17 @@ unix {
     macx {
         # Use Homebrew packages for Mac OS X builds
 
-        BOOST_INCLUDE_PATH += /usr/local/Cellar/boost/1.66.0/include
-        BOOST_LIB_PATH = /usr/local/Cellar/boost/1.66.0/lib
+        BOOST_INCLUDE_PATH += /usr/local/Cellar/boost/1.68.0/include
+        BOOST_LIB_PATH = /usr/local/Cellar/boost/1.68.0/lib
         BOOST_SUFFIX=-mt
 
-        OPENSSL_INCLUDE_PATH += /usr/local/Cellar/openssl/1.0.2n/include
-        OPENSSL_LIB_PATH = /usr/local/Cellar/openssl/1.0.2n/lib
+        OPENSSL_INCLUDE_PATH += /usr/local/Cellar/openssl/1.0.2q/include
+        OPENSSL_LIB_PATH = /usr/local/Cellar/openssl/1.0.2q/lib
     }
 
     INCLUDEPATH += ../rmc-libpp/extras/rmcd/src
     INCLUDEPATH += $$BOOST_INCLUDE_PATH $$OPENSSL_INCLUDE_PATH
-    LIBS += -L../rmc-libpp/build/src/unity -lrmclibpp
+    LIBS += -L../rmc-libpp/build/extras/rmcd -lsecp256k1 -lxrpl_core
     LIBS += $$join(OPENSSL_LIB_PATH,,-L,) -lssl -lcrypto
     LIBS += $$join(BOOST_LIB_PATH,,-L,) \
             \

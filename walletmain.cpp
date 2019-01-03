@@ -336,11 +336,11 @@ void WalletMain::saveKeys(bool pbOverwrite)
         keyObj["account_id"] = toBase58(keyData.raAccountID).c_str();
         if (keyData.vchCryptedKey.size() != 0)
         {
-            keyObj["encrypted_private_key"] = strHex(keyData.vchCryptedKey.data(), keyData.vchCryptedKey.size()).c_str();
-            keyObj["public_key"] = strHex(keyData.rpPublicKey.data(), keyData.rpPublicKey.size()).c_str();
+            keyObj["encrypted_private_key"] = strHex(keyData.vchCryptedKey).c_str();
+            keyObj["public_key"] = strHex(keyData.rpPublicKey).c_str();
         }
         else
-            keyObj["private_key"] = strHex(keyData.rsSecretKey.data(), 32).c_str();
+            keyObj["private_key"] = strHex(keyData.rsSecretKey).c_str();
 
         keysArr.push_back(keyObj);
     }
@@ -356,8 +356,8 @@ void WalletMain::saveKeys(bool pbOverwrite)
         walletObj["encryption"] = QJsonObject
         {
             { "master_public_key", sMasterPubKey.c_str() },
-            { "encrypted_master_private_key", strHex(vchCryptedMasterKey.data(), vchCryptedMasterKey.size()).c_str() },
-            { "salt", strHex(vchDerivationSalt.data(), vchDerivationSalt.size()).c_str() },
+            { "encrypted_master_private_key", strHex(vchCryptedMasterKey).c_str() },
+            { "salt", strHex(vchDerivationSalt).c_str() },
             { "iterations", nDeriveIterations }
         };
     }
@@ -411,7 +411,7 @@ Error WalletMain::newKey(QString& psNewAccID)
 Error WalletMain::importKey(const secure::string& psKey, QString& psNewAccID)
 {
     using namespace ripple;
-    auto decodeResult = parseBase58<SecretKey>(TOKEN_ACCOUNT_WIF, psKey.c_str());
+    auto decodeResult = parseBase58<SecretKey>(TokenType::AccountWif, psKey.c_str());
     if (! decodeResult)
         return eNoWif; // Incorrect WIF string
     KeyData keyData;
