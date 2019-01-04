@@ -777,36 +777,39 @@ void WalletMain::processTxMessage(QJsonObject poTxn)
         {
             // We are sender, add debit record
             int acc_idx = std::distance(vsAccounts.begin(), it1);
-            auto& rowData = vtTransactions[acc_idx];
-            rowData.insert(rowData.begin(), {
-                timeFormat(txObj["date"].toInt()),
-                txObj["TransactionType"].toString(),
-                txObj["hash"].toString(),
-                AmountWithSign(txObj["Amount"].toString().toDouble(), true),
-                QJsonDocument(txObj).toJson()
-            });
+            if (!txExists(txObj["hash"].toString(), acc_idx)) {
+                auto& rowData = vtTransactions[acc_idx];
+                rowData.insert(rowData.begin(), {
+                    timeFormat(txObj["date"].toInt()),
+                    txObj["TransactionType"].toString(),
+                    txObj["hash"].toString(),
+                    AmountWithSign(txObj["Amount"].toString().toDouble(), true),
+                    QJsonDocument(txObj).toJson()
+                });
 
-            if (nMainAccount == acc_idx)
-                refreshTxView();
+                if (nMainAccount == acc_idx)
+                    refreshTxView();
+            }
         }
 
         if (it2 != vsAccounts.end())
         {
             // We are receiver, add credit record
             int acc_idx = std::distance(vsAccounts.begin(), it2);
-            auto& rowData = vtTransactions[acc_idx];
-            rowData.insert(rowData.begin(), {
-                timeFormat(txObj["date"].toInt()),
-                txObj["TransactionType"].toString(),
-                txObj["hash"].toString(),
-                AmountWithSign(txObj["Amount"].toString().toDouble()),
-                QJsonDocument(txObj).toJson()
-            });
+            if (!txExists(txObj["hash"].toString(), acc_idx)) {
+                auto& rowData = vtTransactions[acc_idx];
+                rowData.insert(rowData.begin(), {
+                    timeFormat(txObj["date"].toInt()),
+                    txObj["TransactionType"].toString(),
+                    txObj["hash"].toString(),
+                    AmountWithSign(txObj["Amount"].toString().toDouble()),
+                    QJsonDocument(txObj).toJson()
+                });
 
-            if (nMainAccount == acc_idx)
-                refreshTxView();
+                if (nMainAccount == acc_idx)
+                    refreshTxView();
+            }
         }
-
     }
     else
     {
@@ -903,6 +906,17 @@ void WalletMain::refreshTxView()
             ui->txView->setItem( nRow, nCol, newItem);
         }
     }
+}
+
+bool WalletMain::txExists(QString strTxId, int nAccountId)
+{
+    const auto& rowData = vtTransactions[nAccountId];
+    for (auto nRow = 0u; nRow < rowData.size(); ++nRow)
+    {
+        if (rowData[nRow][2] == strTxId) return true;
+    }
+
+    return false;
 }
 
 void WalletMain::submitResponse(const QJsonObject& poResp)
@@ -1103,6 +1117,7 @@ void WalletMain::on_actionImport_key_triggered()
             accInfoRequest({ newAccountID });
             accTxRequest({ newAccountID });
             subsLedgerAndAccountRequest();
+            break;
         }
     }
 

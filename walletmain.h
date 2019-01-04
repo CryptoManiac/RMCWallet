@@ -149,6 +149,9 @@ private:
     // Pull records from vector to data grid
     void refreshTxView();
 
+    // Check if tx has been processed already
+    bool txExists(QString strTxId, int nAccountId);
+
     // Process ledger info
     void processLedgerMessage(QJsonObject poLedger);
 
