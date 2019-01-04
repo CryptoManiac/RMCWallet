@@ -143,9 +143,9 @@ Error WalletMain::processWallet(const QJsonObject& poKey)
 {
     using namespace ripple;
     const auto& accs = poKey["accounts"];
-    int nSize = 0;
+    size_t nSize = 0;
 
-    if (!accs.isArray() || 0 == (nSize = accs.toArray().size()))
+    if (!accs.isArray() || 0 == (nSize = static_cast<size_t>(accs.toArray().size())))
         return Error(E_FATAL, "Wallet", "Incorrect wallet JSON: unable to fetch accounts");
 
     for (const auto& account : accs.toArray())
@@ -347,7 +347,7 @@ void WalletMain::saveKeys(bool pbOverwrite)
 
     QJsonObject walletObj
     {
-            { "main_account", (int)nMainAccount },
+            { "main_account", static_cast<int>(nMainAccount) },
             { "accounts", keysArr },
     };
 
@@ -776,7 +776,7 @@ void WalletMain::processTxMessage(QJsonObject poTxn)
         if (it1 != vsAccounts.end())
         {
             // We are sender, add debit record
-            auto acc_idx = (size_t) std::distance(vsAccounts.begin(), it1);
+            auto acc_idx = static_cast<size_t>(std::distance(vsAccounts.begin(), it1));
             if (!txExists(txObj["hash"].toString(), acc_idx)) {
                 auto& rowData = vtTransactions[acc_idx];
                 rowData.insert(rowData.begin(), {
@@ -908,7 +908,7 @@ void WalletMain::refreshTxView()
     }
 }
 
-bool WalletMain::txExists(QString strTxId, int nAccountId)
+bool WalletMain::txExists(QString strTxId, size_t nAccountId)
 {
     const auto& rowData = vtTransactions[nAccountId];
     for (auto nRow = 0u; nRow < rowData.size(); ++nRow)

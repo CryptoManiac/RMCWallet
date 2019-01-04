@@ -34,6 +34,7 @@ unix {
     macx {
         # Use Homebrew packages for Mac OS X builds
 
+        QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.14
         BOOST_INCLUDE_PATH += /usr/local/Cellar/boost/1.68.0/include
         BOOST_LIB_PATH = /usr/local/Cellar/boost/1.68.0/lib
         BOOST_SUFFIX=-mt

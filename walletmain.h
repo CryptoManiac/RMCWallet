@@ -150,7 +150,7 @@ private:
     void refreshTxView();
 
     // Check if tx has been processed already
-    bool txExists(QString strTxId, int nAccountId);
+    bool txExists(QString strTxId, size_t nAccountId);
 
     // Process ledger info
     void processLedgerMessage(QJsonObject poLedger);
