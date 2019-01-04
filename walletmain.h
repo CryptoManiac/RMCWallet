@@ -92,7 +92,7 @@ private:
     std::vector<unsigned char> vchDerivationSalt;
     std::vector<unsigned char> vchCryptedMasterKey;
 
-    int nMainAccount = 0;
+    size_t nMainAccount = 0;
     std::vector<KeyData> vkStore;
     QJsonArray vsAccounts;
     std::vector<int64_t> vnBalances;

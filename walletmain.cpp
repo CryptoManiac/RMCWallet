@@ -347,7 +347,7 @@ void WalletMain::saveKeys(bool pbOverwrite)
 
     QJsonObject walletObj
     {
-            { "main_account", nMainAccount },
+            { "main_account", (int)nMainAccount },
             { "accounts", keysArr },
     };
 
@@ -776,7 +776,7 @@ void WalletMain::processTxMessage(QJsonObject poTxn)
         if (it1 != vsAccounts.end())
         {
             // We are sender, add debit record
-            int acc_idx = std::distance(vsAccounts.begin(), it1);
+            auto acc_idx = (size_t) std::distance(vsAccounts.begin(), it1);
             if (!txExists(txObj["hash"].toString(), acc_idx)) {
                 auto& rowData = vtTransactions[acc_idx];
                 rowData.insert(rowData.begin(), {
@@ -795,7 +795,7 @@ void WalletMain::processTxMessage(QJsonObject poTxn)
         if (it2 != vsAccounts.end())
         {
             // We are receiver, add credit record
-            int acc_idx = std::distance(vsAccounts.begin(), it2);
+            auto acc_idx = (size_t) std::distance(vsAccounts.begin(), it2);
             if (!txExists(txObj["hash"].toString(), acc_idx)) {
                 auto& rowData = vtTransactions[acc_idx];
                 rowData.insert(rowData.begin(), {
