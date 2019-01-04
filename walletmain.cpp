@@ -587,7 +587,7 @@ void WalletMain::setupControls(QWidget *parent)
     std::unique_ptr<DoubleValidator> amountValidator(new DoubleValidator(parent));
     amountValidator->setDecimals(6);
     amountValidator->setBottom(0.00);
-    amountValidator->setTop(10757.0);
+    amountValidator->setTop(10757000.0);
     amountValidator->setNotation(QDoubleValidator::StandardNotation);
     ui->amountToSend->setValidator(amountValidator.get());
     ui->sendTransactionFeeValue->setValidator(amountValidator.get());
