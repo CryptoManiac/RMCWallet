@@ -70,11 +70,11 @@ win32 {
         INCLUDEPATH += C:\MyProjects\deps\rmclibpp-static\include
 
         INCLUDEPATH += C:\MyProjects\deps\openssl-static\include
-        INCLUDEPATH += C:\MyProjects\deps-src\boost_1_68_0\
+        INCLUDEPATH += C:\MyProjects\deps_src\boost_1_68_0\stage\lib\
 
         LIBS += -LC:\MyProjects\deps\rmclibpp-static\lib -lsecp256k1 -lxrpl_core
         LIBS += -LC:\MyProjects\deps\openssl-static\lib -llibeay32 -lssleay32 -llegacy_stdio_definitions -ladvapi32 -lgdi32
-        LIBS += -LC:\MyProjects\deps-src\boost_1_68_0\stage\lib \
+        LIBS += -LC:\MyProjects\deps_src\boost_1_68_0\stage\lib \
                 \
                 -llibboost_atomic-vc141-mt-s-x64-1_68 \
                 -llibboost_chrono-vc141-mt-s-x64-1_68 \
