@@ -49,6 +49,7 @@ unix {
     LIBS += $$join(OPENSSL_LIB_PATH,,-L,) -lssl -lcrypto
     LIBS += $$join(BOOST_LIB_PATH,,-L,) \
             \
+            -lboost_atomic$$BOOST_SUFFIX \
             -lboost_chrono$$BOOST_SUFFIX \
             -lboost_coroutine$$BOOST_SUFFIX \
             -lboost_context$$BOOST_SUFFIX \
