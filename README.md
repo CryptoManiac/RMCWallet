@@ -1,12 +1,13 @@
 # RMCWallet
 Lightweight wallet for RMC with Qt based interface 
+Only 64-bit operation systems are supported.
 
 ## Build instructions
 
 ### Windows
 1. Install Visual Studio Community 2017 with C++ and Windows SDK.
 2. Setup Git for Windows.
-2. Download 32 or 64 bit dependency archive and unpack it either to C:\MyProjects32\ or C:\MyProjects\ respectively.
+2. Download the dependency archive and unpack it to C:\MyProjects\ directory.
 3. Run qmake_env_static.cmd and use opened command prompt for the next actions.
 3. Clone this repository:
     git clone http://github.com/RussianMiningCoin/RMCWallet
@@ -40,12 +41,8 @@ Should be similar to OS X steps. You may also need to build boost 1.66 though. P
 
 ## Build dependencies
 
-Windows x86 dependencies:
-
-https://drive.google.com/open?id=1VFqrgcWCVxVxbbyL_vWWyjAF0IwmDG6y
-
 Windows x64 dependencies:
 
-https://drive.google.com/open?id=1kshBWtEySZyPBLphoe8a0sTFRBz6Myps
+https://drive.google.com/file/d/1uLYJ-9I3NuZz5amsHD1rxMEacVim4weC/view?usp=sharing
 
 These builds were made with MT Release configuration using Visual Studio 2017.
