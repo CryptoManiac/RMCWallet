@@ -72,7 +72,7 @@ win32 {
         INCLUDEPATH += C:\MyProjects\deps\openssl-static\include
         INCLUDEPATH += C:\MyProjects\deps-src\boost_1_68_0\
 
-        LIBS += -LC:\MyProjects\deps\rmclibpp-static\lib -lrmclibpp
+        LIBS += -LC:\MyProjects\deps\rmclibpp-static\lib -lsecp256k1 -lxrpl_core
         LIBS += -LC:\MyProjects\deps\openssl-static\lib -llibeay32 -lssleay32 -llegacy_stdio_definitions -ladvapi32 -lgdi32
         LIBS += -LC:\MyProjects\deps-src\boost_1_68_0\stage\lib \
                 \
