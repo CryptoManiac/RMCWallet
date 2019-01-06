@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QLocale>
+#include <QDateTime>
 #include <QLineEdit>
 
 #include "money.h"
@@ -31,7 +32,9 @@ inline static int64_t readInt(QLineEdit* lineEdit)
 
 inline static double readDouble(QLineEdit* lineEdit)
 {
-    return QLocale::system().toDouble(lineEdit->text());
+    auto val = lineEdit->text();
+    val.replace(QRegExp("[^0-9]"), QLocale::system().decimalPoint());
+    return QLocale::system().toDouble(val);
 }
 
 #endif // FORMAT_H
